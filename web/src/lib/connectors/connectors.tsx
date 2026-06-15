@@ -1368,6 +1368,13 @@ For example, specifying .*-alerts as a "channel to exclude" will cause the conne
     values: [],
     advanced_values: [],
   },
+  box: {
+    description: "Configure Box connector",
+    subtext:
+      "Root folder IDs are configured in the Box credential. Use comma-separated folder IDs to index multiple roots.",
+    values: [],
+    advanced_values: [],
+  },
   s3: {
     description: "Configure S3 connector",
     values: [
@@ -2142,6 +2149,8 @@ export interface ZendeskConfig {
 }
 
 export interface DropboxConfig {}
+
+export interface BoxConfig {}
 
 export interface S3Config {
   bucket_type: "s3";

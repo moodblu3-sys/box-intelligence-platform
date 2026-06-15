@@ -1,4 +1,5 @@
 import {
+  BoxIcon,
   R2Icon,
   S3Icon,
   GoogleStorageIcon,
@@ -204,6 +205,12 @@ export const SOURCE_METADATA_MAP: SourceMap = {
     displayName: "Dropbox",
     category: SourceCategory.Storage,
     docs: `${DOCS_ADMINS_PATH}/connectors/official/dropbox`,
+  },
+  box: {
+    icon: BoxIcon,
+    displayName: "Box",
+    category: SourceCategory.Storage,
+    docs: `${DOCS_ADMINS_PATH}/connectors/official/box`,
   },
   s3: {
     icon: S3Icon,

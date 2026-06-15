@@ -177,6 +177,15 @@ export interface DropboxCredentialJson {
   dropbox_access_token: string;
 }
 
+export interface BoxCredentialJson {
+  client_id: string;
+  client_secret: string;
+  enterprise_id: string;
+  box_subject_type: string;
+  box_subject_id: string;
+  root_folder_ids: string;
+}
+
 export interface R2CredentialJson {
   account_id: string;
   r2_access_key_id: string;
@@ -335,6 +344,14 @@ export const credentialTemplates: Record<ValidSources, any> = {
     loopio_client_token: "",
   } as LoopioCredentialJson,
   dropbox: { dropbox_access_token: "" } as DropboxCredentialJson,
+  box: {
+    client_id: "",
+    client_secret: "",
+    enterprise_id: "",
+    box_subject_type: "enterprise",
+    box_subject_id: "",
+    root_folder_ids: "0",
+  } as BoxCredentialJson,
   salesforce: {
     sf_username: "",
     sf_password: "",
@@ -582,6 +599,14 @@ export const credentialDisplayNames: Record<string, string> = {
 
   // Dropbox
   dropbox_access_token: "Dropbox API Key",
+
+  // Box
+  client_id: "Box Client ID",
+  client_secret: "Box Client Secret",
+  enterprise_id: "Box Enterprise ID",
+  box_subject_type: "Box Subject Type (enterprise or user)",
+  box_subject_id: "Box Subject ID",
+  root_folder_ids: "Root Folder IDs (comma-separated)",
 
   // R2
   account_id: "R2 Account ID",

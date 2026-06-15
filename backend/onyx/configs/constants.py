@@ -235,6 +235,7 @@ class DocumentSource(str, Enum):
     ZENDESK = "zendesk"
     LOOPIO = "loopio"
     DROPBOX = "dropbox"
+    BOX = "box"
     SHAREPOINT = "sharepoint"
     TEAMS = "teams"
     SALESFORCE = "salesforce"
@@ -715,6 +716,7 @@ DocumentSourceDescription: dict[DocumentSource, str] = {
     DocumentSource.ZENDESK: "Support tickets and help articles",
     DocumentSource.LOOPIO: "RFP responses and content library",
     DocumentSource.DROPBOX: "Cloud-stored files and folders",
+    DocumentSource.BOX: "Cloud-stored files and folders",
     DocumentSource.SHAREPOINT: "Documents and team sites",
     DocumentSource.TEAMS: "Chat messages and channels",
     DocumentSource.SALESFORCE: "Sales data, accounts, and opportunities",
