@@ -13,6 +13,8 @@ FROM ${BASE_IMAGE_REGISTRY}/library/python:3.13-slim@sha256:b04b5d7233d2ad9c379e
 
 COPY --from=ghcr.io/astral-sh/uv:0.9.9 /uv /uvx /bin/
 
+ENV UV_HTTP_TIMEOUT=120
+
 # System dependencies for compiling the Python wheels.
 # cmake/libxmlsec1-dev/pkg-config/gcc needed to compile native wheels (e.g. xmlsec)
 # ca-certificates for HTTPS when fetching from PyPI

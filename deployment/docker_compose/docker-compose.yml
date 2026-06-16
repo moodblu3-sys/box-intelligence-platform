@@ -407,7 +407,7 @@ services:
       # See https://opster.com/guides/opensearch/opensearch-basics/opensearch-heap-size-usage-and-jvm-garbage-collection/
       # Xms is the starting size, Xmx is the maximum size. These should be the
       # same.
-      - "OPENSEARCH_JAVA_OPTS=-Xms2g -Xmx2g"
+      - "OPENSEARCH_JAVA_OPTS=${OPENSEARCH_JAVA_OPTS:--Xms2g -Xmx2g}"
     volumes:
       - opensearch-data:/usr/share/opensearch/data
     # These come from the example in https://docs.opensearch.org/latest/install-and-configure/install-opensearch/docker/
