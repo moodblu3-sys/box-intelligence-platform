@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import random
+import time
 from collections.abc import Iterator
 from typing import Any
 
@@ -37,6 +39,48 @@ BOX_FOLDER_FIELDS = ",".join(
     ]
 )
 BOX_MAX_PAGE_LIMIT = 1000
+BOX_AUTH_TIMEOUT_SECONDS = 30
+BOX_METADATA_TIMEOUT_SECONDS = 60
+BOX_DOWNLOAD_TIMEOUT_SECONDS = 120
+BOX_MAX_RETRIES = 3
+BOX_BACKOFF_BASE_SECONDS = 1.0
+BOX_BACKOFF_MAX_SECONDS = 10.0
+BOX_RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
+
+
+def _status_code(response: requests.Response | None) -> int | None:
+    return response.status_code if response is not None else None
+
+
+def _retry_after_seconds(response: requests.Response | None) -> float | None:
+    if response is None:
+        return None
+
+    retry_after = response.headers.get("Retry-After")
+    if not retry_after:
+        return None
+
+    try:
+        return max(float(retry_after), 0)
+    except ValueError:
+        return None
+
+
+def _backoff_seconds(attempt: int, response: requests.Response | None) -> float:
+    retry_after = _retry_after_seconds(response)
+    if retry_after is not None:
+        return min(retry_after, BOX_BACKOFF_MAX_SECONDS)
+
+    base = min(
+        BOX_BACKOFF_BASE_SECONDS * (2**attempt),
+        BOX_BACKOFF_MAX_SECONDS,
+    )
+    return random.uniform(base / 2, base)
+
+
+def _should_retry(response: requests.Response | None) -> bool:
+    status_code = _status_code(response)
+    return status_code in BOX_RETRYABLE_STATUS_CODES
 
 
 class BoxClient:
@@ -65,8 +109,10 @@ class BoxClient:
         box_subject_type: str,
         box_subject_id: str,
     ) -> str:
-        response = requests.post(
+        response = self._request(
+            "post",
             self.token_url,
+            timeout=BOX_AUTH_TIMEOUT_SECONDS,
             data={
                 "grant_type": "client_credentials",
                 "client_id": client_id,
@@ -74,9 +120,7 @@ class BoxClient:
                 "box_subject_type": box_subject_type,
                 "box_subject_id": box_subject_id,
             },
-            timeout=30,
         )
-        response.raise_for_status()
         token = response.json().get("access_token")
         if not token:
             raise ValueError("Box token response did not include access_token")
@@ -86,18 +130,57 @@ class BoxClient:
     def _headers(self) -> dict[str, str]:
         return {"Authorization": f"Bearer {self.access_token}"}
 
+    def _request(
+        self,
+        method: str,
+        url: str,
+        timeout: int,
+        **kwargs: Any,
+    ) -> requests.Response:
+        last_error: requests.HTTPError | requests.RequestException | None = None
+
+        for attempt in range(BOX_MAX_RETRIES + 1):
+            response: requests.Response | None = None
+            try:
+                response = requests.request(
+                    method,
+                    url,
+                    timeout=timeout,
+                    **kwargs,
+                )
+                response.raise_for_status()
+                return response
+            except requests.HTTPError as e:
+                last_error = e
+                response = e.response
+                if attempt >= BOX_MAX_RETRIES or not _should_retry(response):
+                    raise
+                time.sleep(_backoff_seconds(attempt, response))
+            except (
+                requests.Timeout,
+                requests.ConnectionError,
+            ) as e:
+                last_error = e
+                if attempt >= BOX_MAX_RETRIES:
+                    raise
+                time.sleep(_backoff_seconds(attempt, response))
+
+        if last_error is not None:
+            raise last_error
+        raise RuntimeError("Box request failed without an exception")
+
     def _get_json(
         self,
         path: str,
         params: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        response = requests.get(
+        response = self._request(
+            "get",
             f"{self.api_base_url}{path}",
+            timeout=BOX_METADATA_TIMEOUT_SECONDS,
             headers=self._headers,
             params=params,
-            timeout=60,
         )
-        response.raise_for_status()
         return response.json()
 
     def get_folder(self, folder_id: str) -> BoxItem:
@@ -129,10 +212,10 @@ class BoxClient:
                 break
 
     def download_file(self, file_id: str) -> bytes:
-        response = requests.get(
+        response = self._request(
+            "get",
             f"{self.api_base_url}/files/{file_id}/content",
+            timeout=BOX_DOWNLOAD_TIMEOUT_SECONDS,
             headers=self._headers,
-            timeout=120,
         )
-        response.raise_for_status()
         return response.content

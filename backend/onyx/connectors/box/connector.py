@@ -33,6 +33,100 @@ from onyx.utils.logger import setup_logger
 logger = setup_logger()
 
 
+def _box_http_status(error: requests.HTTPError) -> int | None:
+    return error.response.status_code if error.response is not None else None
+
+
+def _box_error_detail(error: requests.HTTPError) -> str:
+    response = error.response
+    if response is None:
+        return str(error)
+
+    try:
+        data = response.json()
+    except ValueError:
+        text = response.text[:500] if response.text else str(error)
+        return text
+
+    if isinstance(data, dict):
+        message = data.get("message") or data.get("error_description")
+        code = data.get("code") or data.get("error")
+        if message and code:
+            return f"{code}: {message}"
+        if message:
+            return str(message)
+        if code:
+            return str(code)
+    return str(error)
+
+
+def _raise_box_auth_error(error: requests.HTTPError) -> None:
+    status_code = _box_http_status(error)
+    detail = _box_error_detail(error)
+    if status_code in {400, 401}:
+        raise CredentialInvalidError(
+            f"Box credential is invalid. Check client_id, client_secret, "
+            f"box_subject_type, and box_subject_id. Box response: {detail}"
+        ) from error
+    if status_code == 403:
+        raise InsufficientPermissionsError(
+            f"Box credential does not have sufficient permissions. "
+            f"Box response: {detail}"
+        ) from error
+    if status_code == 429:
+        raise ConnectorValidationError(
+            f"Box API rate limit was exceeded while validating credentials. "
+            f"Please retry shortly. Box response: {detail}"
+        ) from error
+    if status_code is not None and status_code >= 500:
+        raise ConnectorValidationError(
+            f"Box API is temporarily unavailable while validating credentials. "
+            f"Please retry shortly. Box response: {detail}"
+        ) from error
+    raise ConnectorValidationError(
+        f"Unexpected Box authentication error. Box response: {detail}"
+    ) from error
+
+
+def _raise_box_folder_validation_error(
+    error: requests.HTTPError,
+    folder_id: str,
+) -> None:
+    status_code = _box_http_status(error)
+    detail = _box_error_detail(error)
+    if status_code in {400, 401}:
+        raise CredentialInvalidError(
+            f"Box credential is invalid while validating folder {folder_id}. "
+            f"Box response: {detail}"
+        ) from error
+    if status_code == 403:
+        raise InsufficientPermissionsError(
+            f"Box credential does not have access to folder {folder_id}. "
+            f"Share the folder with the CCG subject or choose a folder the "
+            f"subject can access. Box response: {detail}"
+        ) from error
+    if status_code == 404:
+        raise ConnectorValidationError(
+            f"Box folder {folder_id} was not found. Check root_folder_ids and "
+            f"confirm the folder exists in the target enterprise/user context. "
+            f"Box response: {detail}"
+        ) from error
+    if status_code == 429:
+        raise ConnectorValidationError(
+            f"Box API rate limit was exceeded while validating folder {folder_id}. "
+            f"Please retry shortly. Box response: {detail}"
+        ) from error
+    if status_code is not None and status_code >= 500:
+        raise ConnectorValidationError(
+            f"Box API is temporarily unavailable while validating folder {folder_id}. "
+            f"Please retry shortly. Box response: {detail}"
+        ) from error
+    raise ConnectorValidationError(
+        f"Unexpected Box API error while validating folder {folder_id}. "
+        f"Box response: {detail}"
+    ) from error
+
+
 def _parse_root_folder_ids(raw_value: Any) -> list[str]:
     if raw_value is None or raw_value == "":
         return ["0"]
@@ -105,18 +199,7 @@ class BoxConnector(LoadConnector, PollConnector):
                 box_subject_id=subject_id,
             )
         except requests.HTTPError as e:
-            status_code = e.response.status_code if e.response is not None else None
-            if status_code in {400, 401}:
-                raise CredentialInvalidError(
-                    f"Box credential is invalid: {e}"
-                ) from e
-            if status_code == 403:
-                raise InsufficientPermissionsError(
-                    "Box credential does not have sufficient permissions."
-                ) from e
-            raise ConnectorValidationError(
-                f"Unexpected Box authentication error: {e}"
-            ) from e
+            _raise_box_auth_error(e)
         return None
 
     def _build_hierarchy_node(
@@ -218,7 +301,14 @@ class BoxConnector(LoadConnector, PollConnector):
             try:
                 batch.append(self._build_document(item, _folder_path(current_path_parts)))
             except Exception as e:
-                logger.exception("Failed to process Box file %s: %s", item.id, e)
+                logger.exception(
+                    "Failed to process Box file. box_file_id=%s file_name=%r "
+                    "folder_path=%r error=%s",
+                    item.id,
+                    item.name,
+                    _folder_path(current_path_parts),
+                    e,
+                )
 
             if len(batch) >= self.batch_size:
                 yield batch
@@ -251,23 +341,12 @@ class BoxConnector(LoadConnector, PollConnector):
         if self.box_client is None:
             raise ConnectorMissingCredentialError("Box credentials not loaded.")
 
-        try:
-            for folder_id in self.root_folder_ids:
+        for folder_id in self.root_folder_ids:
+            try:
                 next(self.box_client.iter_folder_items(folder_id, 1), None)
-        except requests.HTTPError as e:
-            status_code = e.response.status_code if e.response is not None else None
-            if status_code in {401, 400}:
-                raise CredentialInvalidError(
-                    f"Box credential is invalid: {e}"
+            except requests.HTTPError as e:
+                _raise_box_folder_validation_error(e, folder_id)
+            except Exception as e:
+                raise ConnectorValidationError(
+                    f"Unexpected Box validation error for folder {folder_id}: {e}"
                 ) from e
-            if status_code == 403:
-                raise InsufficientPermissionsError(
-                    "Box credential does not have access to the configured folder."
-                ) from e
-            raise ConnectorValidationError(
-                f"Unexpected Box API error during validation: {e}"
-            ) from e
-        except Exception as e:
-            raise ConnectorValidationError(
-                f"Unexpected Box validation error: {e}"
-            ) from e
