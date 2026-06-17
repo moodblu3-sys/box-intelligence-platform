@@ -86,7 +86,7 @@ function KnowledgeSidebar({
           ) : undefined
         }
       >
-        Your Files
+        ユーザーファイル
       </LineItem>
 
       {vectorDbEnabled && (
@@ -108,7 +108,7 @@ function KnowledgeSidebar({
               ) : undefined
             }
           >
-            Document Set
+            参照ナレッジセット
           </LineItem>
 
           <Divider paddingParallel="fit" paddingPerpendicular="fit" />
@@ -324,7 +324,7 @@ function DocumentSetsTableContent({
     },
     {
       key: "sources",
-      header: "Sources",
+      header: "ナレッジソース",
       width: 8,
       render: (ds) => (
         <TableLayouts.SourceIconsRow>
@@ -353,8 +353,8 @@ function DocumentSetsTableContent({
       onToggleItem={(id) => onDocumentSetToggle(id as number)}
       searchValue={searchValue}
       onSearchChange={setSearchValue}
-      searchPlaceholder="Search document sets..."
-      emptyMessage="No document sets available."
+      searchPlaceholder="参照ナレッジセットを検索..."
+      emptyMessage="利用できる参照ナレッジセットはありません。"
       ariaLabelPrefix="document-set-row"
     />
   );
@@ -480,7 +480,7 @@ function RecentFilesTableContent({
         onToggleItem={(id) => onToggleFile(id as string)}
         searchValue={searchValue}
         onSearchChange={setSearchValue}
-        searchPlaceholder="Search files..."
+        searchPlaceholder="ファイルを検索..."
         ariaLabelPrefix="user-file-row"
         headerActions={
           <Button
@@ -488,18 +488,16 @@ function RecentFilesTableContent({
             icon={SvgPlusCircle}
             onClick={() => fileInputRef.current?.click()}
           >
-            Add File
+            ファイルを追加
           </Button>
         }
-        emptyMessage="No files available. Upload files to get started."
+        emptyMessage="利用できるファイルはありません。ファイルを追加してください。"
       />
 
       {hasProcessingFiles && (
         <GeneralLayouts.Section height="auto" alignItems="start">
           <Text as="p" text03 secondaryBody>
-            Onyx is still processing your uploaded files. You can create the
-            agent now, but it will not have access to all files until processing
-            completes.
+            Knotがアップロード済みファイルを処理中です。回答エージェントは作成できますが、処理が完了するまで一部のファイルは参照されません。
           </Text>
         </GeneralLayouts.Section>
       )}
@@ -680,7 +678,7 @@ const KnowledgeAddView = memo(function KnowledgeAddView({
               ) : undefined
             }
           >
-            Document Sets
+            参照ナレッジセット
           </LineItem>
         )}
 
@@ -698,14 +696,14 @@ const KnowledgeAddView = memo(function KnowledgeAddView({
             ) : undefined
           }
         >
-          Your Files
+          ユーザーファイル
         </LineItem>
       </GeneralLayouts.Section>
 
       {vectorDbEnabled && connectedSources.length > 0 && (
         <>
           <Text as="p" text03 secondaryBody>
-            Connected Sources
+            接続済みナレッジソース
           </Text>
           {connectedSources.map((connectedSource) => {
             const sourceMetadata = getSourceMetadata(connectedSource.source);
@@ -780,7 +778,7 @@ const KnowledgeMainContent = memo(function KnowledgeMainContent({
         height="auto"
       >
         <Text text03 secondaryBody>
-          Add documents or connected sources to use for this agent.
+          この回答エージェントで使う参照ナレッジまたはナレッジソースを追加してください。
         </Text>
         <Button
           icon={SvgPlusCircle}
@@ -808,8 +806,7 @@ const KnowledgeMainContent = memo(function KnowledgeMainContent({
       height="auto"
     >
       <Text as="p" text03 secondaryBody>
-        {totalSelected} knowledge source{totalSelected !== 1 ? "s" : ""}{" "}
-        selected
+        {totalSelected} 件の参照ナレッジを選択中
       </Text>
       <Button
         prominence="internal"
@@ -817,7 +814,7 @@ const KnowledgeMainContent = memo(function KnowledgeMainContent({
         onClick={onViewEdit}
         aria-label="knowledge-view-edit"
       >
-        View / Edit
+        表示 / 編集
       </Button>
     </GeneralLayouts.Section>
   );

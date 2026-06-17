@@ -95,15 +95,15 @@ export default function AgentsNavigationPage() {
     >
       <SettingsLayouts.Header
         icon={SvgOnyxOctagon}
-        title="Agents"
-        description="Customize AI behavior and knowledge for you and your team's use cases."
+        title="回答エージェント"
+        description="用途に合わせて回答方針と参照ナレッジを切り替えます。"
         rightChildren={
           <Button
             href="/app/agents/create"
             icon={SvgPlus}
             aria-label="AgentsPage/new-agent-button"
           >
-            New Agent
+            新しい回答エージェント
           </Button>
         }
       >
@@ -112,7 +112,7 @@ export default function AgentsNavigationPage() {
             <div className="flex-2">
               <InputTypeIn
                 ref={searchInputRef}
-                placeholder="Search agents..."
+                placeholder="回答エージェントを検索..."
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
                 searchIcon
@@ -124,8 +124,8 @@ export default function AgentsNavigationPage() {
                 onValueChange={(value) => setActiveTab(value as "all" | "your")}
               >
                 <Tabs.List>
-                  <Tabs.Trigger value="all">All Agents</Tabs.Trigger>
-                  <Tabs.Trigger value="your">Your Agents</Tabs.Trigger>
+                  <Tabs.Trigger value="all">すべて</Tabs.Trigger>
+                  <Tabs.Trigger value="your">自分のエージェント</Tabs.Trigger>
                 </Tabs.List>
               </Tabs>
             </div>
@@ -142,19 +142,19 @@ export default function AgentsNavigationPage() {
             className="w-full h-full flex flex-col items-center justify-center py-12"
             text03
           >
-            No Agents found
+            回答エージェントが見つかりません
           </Text>
         ) : (
           <>
             <AgentsSection
-              title="Featured Agents"
+              title="おすすめの回答エージェント"
               description="Curated by your team"
               agents={featuredAgents}
             />
-            <AgentsSection title="All Agents" agents={allAgents} />
+            <AgentsSection title="すべての回答エージェント" agents={allAgents} />
             <TextSeparator
               count={agentCount}
-              text={agentCount === 1 ? "Agent" : "Agents"}
+              text="回答エージェント"
             />
           </>
         )}

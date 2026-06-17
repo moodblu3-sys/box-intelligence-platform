@@ -670,7 +670,7 @@ export default function ChatPreferencesPage() {
               withLabel
             >
               <InputTextArea
-                placeholder="Describe your team and how Onyx should behave."
+                placeholder="Describe your team and how Knot should behave."
                 rows={4}
                 maxRows={10}
                 autoResize

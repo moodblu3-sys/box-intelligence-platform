@@ -135,8 +135,7 @@ export const FederatedConnectorSelector = ({
       )}
 
       <Text as="p" mainUiMuted text03>
-        Documents from selected federated connectors will be searched in
-        real-time during queries.
+        選択した連携ナレッジソースの参照ナレッジは、質問時にリアルタイム検索されます。
       </Text>
       <div className="relative">
         <InputTypeIn

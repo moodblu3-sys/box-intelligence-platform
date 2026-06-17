@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SvgOnyxLogo } from "@opal/logos";
+import { PRODUCT_NAME } from "@/lib/branding";
 
 export default function AuthFlowContainer({
   children,
@@ -20,7 +21,7 @@ export default function AuthFlowContainer({
         <div className="text-sm mt-6 text-center w-full text-text-03 mainUiBody mx-auto">
           {footerContent ?? (
             <>
-              New to Onyx?{" "}
+              New to {PRODUCT_NAME}?{" "}
               <Link
                 href="/auth/signup"
                 className="text-text-05 mainUiAction underline transition-colors duration-200"

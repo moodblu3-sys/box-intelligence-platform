@@ -549,7 +549,9 @@ const AppSidebar = memo(function AppSidebarInner() {
           selected={activeSidebarTab.isMoreAgents()}
           variant={folded ? "sidebar-heavy" : "sidebar-light"}
         >
-          {visibleAgents.length === 0 ? "Explore Agents" : "More Agents"}
+          {visibleAgents.length === 0
+            ? "回答エージェントを探す"
+            : "その他の回答エージェント"}
         </SidebarTab>
       </div>
     ),
@@ -685,7 +687,7 @@ const AppSidebar = memo(function AppSidebarInner() {
                 collisionDetection={closestCenter}
                 onDragEnd={handleAgentDragEnd}
               >
-                <SidebarLayouts.Section title="Agents">
+                <SidebarLayouts.Section title="回答エージェント">
                   <SortableContext
                     items={visibleAgentIds}
                     strategy={verticalListSortingStrategy}

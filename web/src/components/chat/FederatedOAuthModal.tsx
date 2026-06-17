@@ -10,6 +10,7 @@ import useFederatedOAuthStatus from "@/hooks/useFederatedOAuthStatus";
 import { SvgLink } from "@opal/icons";
 import { Card } from "@/refresh-components/cards";
 import { ContentAction } from "@opal/layouts";
+import { productDisplayName } from "@/lib/branding";
 
 export interface FederatedConnectorOAuthStatus {
   federated_connector_id: number;
@@ -117,8 +118,9 @@ export default function FederatedOAuthModal() {
     return null;
   }
 
-  const applicationName =
-    settings?.enterpriseSettings?.application_name || "Onyx";
+  const applicationName = productDisplayName(
+    settings?.enterpriseSettings?.application_name
+  );
 
   return (
     <Modal open>

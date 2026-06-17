@@ -50,26 +50,26 @@ export const ADMIN_ROUTES = {
   INDEXING_STATUS: {
     path: "/admin/indexing/status",
     icon: SvgBookOpen,
-    title: "Existing Connectors",
-    sidebarLabel: "Existing Connectors",
+    title: "ナレッジソース",
+    sidebarLabel: "ナレッジソース",
   },
   ADD_CONNECTOR: {
     path: "/admin/add-connector",
     icon: SvgUploadCloud,
-    title: "Add Connector",
-    sidebarLabel: "Add Connector",
+    title: "ナレッジソースを追加",
+    sidebarLabel: "ナレッジソースを追加",
   },
   DOCUMENT_SETS: {
     path: "/admin/documents/sets",
     icon: SvgFiles,
-    title: "Document Sets",
-    sidebarLabel: "Document Sets",
+    title: "参照ナレッジセット",
+    sidebarLabel: "参照ナレッジセット",
   },
   DOCUMENT_EXPLORER: {
     path: "/admin/documents/explorer",
     icon: SvgZoomIn,
-    title: "Document Explorer",
-    sidebarLabel: "Explorer",
+    title: "参照ナレッジ",
+    sidebarLabel: "参照ナレッジ",
   },
   DOCUMENT_FEEDBACK: {
     path: "/admin/documents/feedback",
@@ -80,8 +80,8 @@ export const ADMIN_ROUTES = {
   AGENTS: {
     path: "/admin/agents",
     icon: SvgOnyxOctagon,
-    title: "Agents",
-    sidebarLabel: "Agents",
+    title: "回答エージェント",
+    sidebarLabel: "回答エージェント",
   },
   SLACK_BOTS: {
     path: "/admin/bots",

@@ -249,14 +249,14 @@ export default function Page() {
         icon={route.icon}
         title={route.title}
         rightChildren={
-          <Button href="/admin/indexing/status">See Connectors</Button>
+          <Button href="/admin/indexing/status">ナレッジソースを見る</Button>
         }
         divider
       />
       <SettingsLayouts.Body>
         <InputTypeIn
           type="text"
-          placeholder="Search Connectors"
+          placeholder="ナレッジソースを検索"
           ref={searchInputRef}
           value={rawSearchTerm} // keep the input bound to immediate state
           onChange={(event) => setSearchTerm(event.target.value)}

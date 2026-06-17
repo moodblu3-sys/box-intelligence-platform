@@ -9,7 +9,12 @@ import { cn } from "@opal/utils";
 import Text from "@/refresh-components/texts/Text";
 import Truncated from "@/refresh-components/texts/Truncated";
 import { useMemo } from "react";
-import { SvgOnyxLogo, SvgOnyxLogoTyped } from "@opal/logos";
+import { SvgOnyxLogo } from "@opal/logos";
+import {
+  PRODUCT_NAME,
+  PRODUCT_FOOTER,
+  productDisplayName,
+} from "@/lib/branding";
 
 export interface LogoProps {
   folded?: boolean;
@@ -29,7 +34,9 @@ export default function Logo({
   const resolvedSize = size ?? DEFAULT_LOGO_SIZE_PX;
   const settings = useSettingsContext();
   const logoDisplayStyle = settings.enterpriseSettings?.logo_display_style;
-  const applicationName = settings.enterpriseSettings?.application_name;
+  const applicationName = productDisplayName(
+    settings.enterpriseSettings?.application_name
+  );
 
   // Cache-buster: the logo URL never changes (/api/enterprise-settings/logo)
   // so the browser serves the in-memory cached image even after an admin
@@ -46,7 +53,10 @@ export default function Logo({
     return folded ? (
       <SvgOnyxLogo size={resolvedSize} className={cn("shrink-0", className)} />
     ) : (
-      <SvgOnyxLogoTyped size={resolvedSize} className={className} />
+      <div className={cn("flex items-center gap-2", className)}>
+        <SvgOnyxLogo size={resolvedSize} className="shrink-0" />
+        <Truncated headingH3>Onyx OSS</Truncated>
+      </div>
     );
   }
 
@@ -90,7 +100,7 @@ export default function Logo({
                   className={"line-clamp-1 truncate"}
                   nowrap
                 >
-                  Powered by Onyx
+                  {PRODUCT_FOOTER}
                 </Text>
               )}
           </div>
@@ -115,6 +125,9 @@ export default function Logo({
   ) : folded ? (
     <SvgOnyxLogo size={resolvedSize} className={cn("shrink-0", className)} />
   ) : (
-    <SvgOnyxLogoTyped size={resolvedSize} className={className} />
+    <div className={cn("flex items-center gap-2", className)}>
+      <SvgOnyxLogo size={resolvedSize} className="shrink-0" />
+      <Truncated headingH3>{PRODUCT_NAME}</Truncated>
+    </div>
   );
 }

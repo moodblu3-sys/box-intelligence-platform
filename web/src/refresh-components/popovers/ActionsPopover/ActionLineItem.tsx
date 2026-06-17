@@ -184,8 +184,8 @@ export default function ActionLineItem({
               <Button
                 aria-label={
                   isSearchToolWithNoConnectors
-                    ? "Add Connectors"
-                    : "Configure Connectors"
+                    ? "ナレッジソースを追加"
+                    : "ナレッジソースを設定"
                 }
                 icon={
                   isSearchToolWithNoConnectors ? SvgSettings : SvgChevronRight
@@ -199,8 +199,8 @@ export default function ActionLineItem({
                 size="sm"
                 tooltip={
                   isSearchToolWithNoConnectors
-                    ? "Add Connectors"
-                    : "Configure Connectors"
+                    ? "ナレッジソースを追加"
+                    : "ナレッジソースを設定"
                 }
               />
             )}

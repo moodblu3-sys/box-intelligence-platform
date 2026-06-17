@@ -53,14 +53,14 @@ export function SearchAndFilterControls({
   return (
     <div className="flex items-center gap-x-2">
       <InputTypeIn
-        placeholder="Search Connectors"
+        placeholder="ナレッジソースを検索"
         type="text"
         value={localSearchValue}
         onChange={(event) => setLocalSearchValue(event.target.value)}
       />
 
       <Button onClick={hasExpandedSources ? onCollapseAll : onExpandAll}>
-        {hasExpandedSources ? "Collapse All" : "Expand All"}
+        {hasExpandedSources ? "すべて閉じる" : "すべて開く"}
       </Button>
 
       <div className="flex items-center gap-2">
@@ -91,7 +91,7 @@ export function SearchAndFilterControls({
             {filterOptions.docsCountFilter.operator &&
               filterOptions.docsCountFilter.value !== null && (
                 <Badge variant="secondary" className="px-2 py-0.5 text-xs">
-                  Docs {filterOptions.docsCountFilter.operator}{" "}
+                  参照ナレッジ {filterOptions.docsCountFilter.operator}{" "}
                   {filterOptions.docsCountFilter.value}
                 </Badge>
               )}
@@ -99,7 +99,7 @@ export function SearchAndFilterControls({
             {filterOptions.docsCountFilter.operator &&
               filterOptions.docsCountFilter.value === null && (
                 <Badge variant="secondary" className="px-2 py-0.5 text-xs">
-                  Docs {filterOptions.docsCountFilter.operator} any
+                  参照ナレッジ {filterOptions.docsCountFilter.operator} any
                 </Badge>
               )}
 

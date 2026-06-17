@@ -179,12 +179,12 @@ const DocumentSetTable = ({
 
   return (
     <div>
-      <Title>Existing Document Sets</Title>
+      <Title>参照ナレッジセット</Title>
       <Table className="overflow-visible mt-2">
         <TableHeader>
           <TableRow>
             <TableHead>Name</TableHead>
-            <TableHead>Connectors</TableHead>
+            <TableHead>ナレッジソース</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Public</TableHead>
             <TableHead>Delete</TableHead>
@@ -383,7 +383,7 @@ function Main() {
     <div className="mb-8">
       <Text as="p">
         {markdown(
-          "**Document Sets** allow you to group logically connected documents into a single bundle. These can then be used as a filter when performing searches to control the scope of information Onyx searches over."
+          "**参照ナレッジセット** は、関連する参照ナレッジをひとつの束としてまとめる機能です。検索時の対象範囲を絞るために利用できます。"
         )}
       </Text>
       <Spacer rem={0.75} />
@@ -396,7 +396,7 @@ function Main() {
           prominence="secondary"
           href="/admin/documents/sets/new"
         >
-          New Document Set
+          新しい参照ナレッジセット
         </Button>
       </div>
 

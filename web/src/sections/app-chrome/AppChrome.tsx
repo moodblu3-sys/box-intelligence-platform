@@ -53,7 +53,7 @@ import useAppFocus from "@/hooks/useAppFocus";
 import { useQueryController } from "@/providers/QueryControllerProvider";
 import { useTierAtLeast } from "@/hooks/useTierAtLeast";
 import { Tier } from "@/interfaces/settings";
-import { APP_SLOGAN } from "@/lib/constants";
+import { PRODUCT_FOOTER } from "@/lib/branding";
 
 // ---------------------------------------------------------------------------
 // Header
@@ -446,9 +446,7 @@ function Footer() {
 
   const customFooterContent =
     settings?.enterpriseSettings?.custom_lower_disclaimer_content ||
-    `[Onyx ${
-      settings?.webVersion || "dev"
-    }](https://www.onyx.app/) - ${APP_SLOGAN}`;
+    PRODUCT_FOOTER;
 
   return (
     <footer

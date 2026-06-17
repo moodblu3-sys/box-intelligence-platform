@@ -166,7 +166,7 @@ const DocumentsSidebar = memo(
         <div className="flex flex-col px-3 gap-6">
           {hasCited && (
             <div>
-              <Header onClose={closeSidebar}>Cited Sources</Header>
+              <Header onClose={closeSidebar}>引用元ナレッジ</Header>
               <ChatDocumentDisplayWrapper>
                 {citedDocuments.map((document) => (
                   <ChatDocumentDisplay
@@ -186,7 +186,9 @@ const DocumentsSidebar = memo(
           {hasOther && (
             <div>
               <Header onClose={closeSidebar}>
-                {citedDocuments.length > 0 ? "More" : "Found Sources"}
+                {citedDocuments.length > 0
+                  ? "その他の参照ナレッジ"
+                  : "参照ナレッジ"}
               </Header>
               <ChatDocumentDisplayWrapper>
                 {otherDocuments.map((document) => (
@@ -206,7 +208,7 @@ const DocumentsSidebar = memo(
 
           {humanFileDescriptors && humanFileDescriptors.length > 0 && (
             <div>
-              <Header onClose={closeSidebar}>User Files</Header>
+              <Header onClose={closeSidebar}>ユーザーファイル</Header>
               <ChatDocumentDisplayWrapper>
                 {humanFileDescriptors.map((file) => (
                   <ChatDocumentDisplay

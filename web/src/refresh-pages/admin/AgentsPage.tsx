@@ -15,12 +15,12 @@ export default function AgentsPage() {
   return (
     <SettingsLayouts.Root>
       <SettingsLayouts.Header
-        title="Agents"
-        description="Customize AI behavior and knowledge with agents. Manage agents in your organization."
+        title="回答エージェント"
+        description="用途に合わせて回答方針と参照ナレッジを管理します。"
         icon={SvgOnyxOctagon}
         rightChildren={
           <Button href="/app/agents/create?admin=true" icon={SvgPlus}>
-            New Agent
+            新しい回答エージェント
           </Button>
         }
       />

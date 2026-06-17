@@ -88,7 +88,7 @@ export function AccessTypeForm({
     name: "Public",
     value: "public",
     description:
-      "Everyone with an account on Onyx can access the documents pulled in by this connector",
+      "Knotアカウントを持つ全員が、このナレッジソースから取り込まれた参照ナレッジにアクセスできます",
     disabled: false,
     disabledReason: "",
   });
@@ -98,7 +98,7 @@ export function AccessTypeForm({
       name: "Auto Sync Permissions",
       value: "sync",
       description:
-        "We will automatically sync permissions from the source. A document will be searchable in Onyx if and only if the user performing the search has permission to access the document in the source.",
+        "元のサービスから権限を自動同期します。検索するユーザーが元のサービス上でアクセス権を持つ参照ナレッジのみ、Knotで検索できます。",
       disabled: isSyncDisabledByAuth,
       disabledReason:
         "Current credential auth method doesn't support Auto Sync Permissions. Please change the credential auth method to a supported one.",

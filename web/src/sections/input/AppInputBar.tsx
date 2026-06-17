@@ -861,10 +861,10 @@ const AppInputBar = React.memo(
                           : isRecording
                             ? "Listening..."
                             : isVoicePlaybackActive
-                              ? "Onyx is speaking..."
+                              ? "Knotが応答中..."
                               : isSearchMode
-                                ? "Search connected sources"
-                                : "How can I help you today?"
+                                ? "ナレッジソースを検索"
+                                : "Knotに何を相談しますか？"
                       }
                       data-empty={!message ? "" : undefined}
                       onKeyDown={(event) => {

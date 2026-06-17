@@ -1945,7 +1945,7 @@ function ConnectorsSettings() {
     <Section gap={2}>
       <Section gap={0.75} justifyContent="start">
         <Content
-          title="Connectors"
+          title="ナレッジソース"
           sizePreset="main-content"
           variant="section"
           width="full"

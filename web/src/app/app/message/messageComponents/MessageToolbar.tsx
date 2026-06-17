@@ -79,7 +79,7 @@ const SourcesTagWrapper = React.memo(function SourcesTagWrapper({
   return (
     <SourceTag
       variant="button"
-      displayName="Sources"
+      displayName="ナレッジソース"
       sources={sources}
       onSourceClick={handleSourceClick}
       toggleSource

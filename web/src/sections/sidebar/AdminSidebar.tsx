@@ -27,8 +27,8 @@ import { markdown } from "@opal/utils";
 
 const SECTIONS = {
   UNLABELED: null,
-  AGENTS_AND_ACTIONS: "Agents & Actions",
-  DOCUMENTS_AND_KNOWLEDGE: "Documents & Knowledge",
+  AGENTS_AND_ACTIONS: "回答エージェント & アクション",
+  DOCUMENTS_AND_KNOWLEDGE: "参照ナレッジ",
   INTEGRATIONS: "Integrations",
   PERMISSIONS: "Permissions",
   ORGANIZATION: "Organization",
@@ -298,8 +298,8 @@ export default function AdminSidebar() {
                   icon={icon}
                   tooltip={markdown(
                     requiredTier === Tier.ENTERPRISE
-                      ? "This feature is available on the [Enterprise version of Onyx](/admin/billing) only."
-                      : "This feature is available on the [Business or Enterprise version of Onyx](/admin/billing) only."
+                      ? "この機能は Enterprise プランで利用できます。"
+                      : "この機能は Business または Enterprise プランで利用できます。"
                   )}
                 >
                   {name}

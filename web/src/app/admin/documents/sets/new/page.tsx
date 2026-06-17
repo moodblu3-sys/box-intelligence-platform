@@ -37,7 +37,7 @@ function Main() {
   if (vectorDbEnabled && (ccPairsError || !ccPairs)) {
     return (
       <ErrorCallout
-        errorTitle="Failed to fetch Connectors"
+        errorTitle="ナレッジソースの取得に失敗しました"
         errorMsg={ccPairsError}
       />
     );
@@ -64,7 +64,7 @@ export default function Page() {
     <SettingsLayouts.Root>
       <SettingsLayouts.Header
         icon={route.icon}
-        title="New Document Set"
+        title="新しい参照ナレッジセット"
         divider
         backButton
       />

@@ -1604,7 +1604,7 @@ export default function AgentEditorPage({
                                 <InputHorizontal
                                   withLabel="llm_model"
                                   title="Default Model"
-                                  description="This model will be used by Onyx by default in your chats."
+                                  description="This model will be used by Knot by default in your chats."
                                 >
                                   <LLMSelector
                                     name="llm_model"
@@ -1622,7 +1622,7 @@ export default function AgentEditorPage({
                                   withLabel="knowledge_cutoff_date"
                                   title="Knowledge Cutoff Date"
                                   suffix="optional"
-                                  description="Documents with a last-updated date prior to this will be ignored."
+                                  description="参照ナレッジの最終更新日がこの日付より前の場合は無視されます。"
                                 >
                                   <InputDatePickerField
                                     name="knowledge_cutoff_date"

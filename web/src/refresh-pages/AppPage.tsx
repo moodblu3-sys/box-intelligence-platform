@@ -32,6 +32,7 @@ import { getSourceMetadata } from "@/lib/sources";
 import { SourceMetadata } from "@/lib/search/interfaces";
 import { FederatedConnectorDetail, UserRole, ValidSources } from "@/lib/types";
 import DocumentsSidebar from "@/sections/document-sidebar/DocumentsSidebar";
+import { PRODUCT_NAME, productDisplayName } from "@/lib/branding";
 import useChatController from "@/hooks/useChatController";
 import useMultiModelChat from "@/hooks/useMultiModelChat";
 import ModelSelector from "@/refresh-components/popovers/ModelSelector";
@@ -149,9 +150,11 @@ export default function AppPage({ firstMessage }: ChatPageProps) {
   // available in server-side components
   const settings = useSettingsContext();
 
-  const appNameRef = useRef<string>("Onyx");
+  const appNameRef = useRef<string>(PRODUCT_NAME);
   useEffect(() => {
-    const appName = settings.enterpriseSettings?.application_name || "Onyx";
+    const appName = productDisplayName(
+      settings.enterpriseSettings?.application_name
+    );
     appNameRef.current = appName;
     document.title = currentChatSession?.name
       ? `${currentChatSession.name} — ${appName}`
@@ -733,7 +736,7 @@ export default function AppPage({ firstMessage }: ChatPageProps) {
             <Modal.Content>
               <Modal.Header
                 icon={SvgFileText}
-                title="Sources"
+                title="ナレッジソース"
                 onClose={() => updateCurrentDocumentSidebarVisible(false)}
               />
               <Modal.Body>

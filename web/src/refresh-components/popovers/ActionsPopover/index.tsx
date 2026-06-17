@@ -833,7 +833,7 @@ export default function ActionsPopover({
       {[
         <InputTypeIn
           key="search"
-          placeholder="Search actions..."
+          placeholder="アクションを検索..."
           searchIcon
           value={searchTerm}
           onChange={(event) => setSearchTerm(event.target.value)}
@@ -940,12 +940,12 @@ export default function ActionsPopover({
   const toolsView = (
     <SwitchList
       items={sourceToggleItems}
-      searchPlaceholder="Search Filters"
+      searchPlaceholder="ナレッジソースを検索"
       allDisabled={allSourcesDisabled}
       onDisableAll={handleDisableAllSources}
       onEnableAll={handleEnableAllSources}
-      disableAllLabel="Disable All Sources"
-      enableAllLabel="Enable All Sources"
+      disableAllLabel="すべてのナレッジソースを無効化"
+      enableAllLabel="すべてのナレッジソースを有効化"
       onBack={() => setSecondaryView(null)}
     />
   );
@@ -977,7 +977,7 @@ export default function ActionsPopover({
               icon={SvgSliders}
               interaction={open ? "hover" : "rest"}
               prominence="tertiary"
-              tooltip="Manage Actions"
+              tooltip="アクションを管理"
             />
           </div>
         </Popover.Trigger>

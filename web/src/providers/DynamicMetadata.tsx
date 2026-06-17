@@ -2,12 +2,13 @@
 
 import { useEffect, useMemo } from "react";
 import { useSettingsContext } from "@/providers/SettingsProvider";
+import { productDisplayName } from "@/lib/branding";
 
 export default function DynamicMetadata() {
   const { enterpriseSettings } = useSettingsContext();
 
   useEffect(() => {
-    const title = enterpriseSettings?.application_name || "Onyx";
+    const title = productDisplayName(enterpriseSettings?.application_name);
     if (document.title !== title) {
       document.title = title;
     }

@@ -98,14 +98,14 @@ function SummaryRow({
 
       <TableCell>
         <div className="text-sm text-neutral-500 dark:text-neutral-300">
-          Total Connectors
+          総ナレッジソース数
         </div>
         <div className="text-xl font-semibold">{summary.total_connectors}</div>
       </TableCell>
 
       <TableCell>
         <div className="text-sm text-neutral-500 dark:text-neutral-300">
-          Active Connectors
+          有効なナレッジソース
         </div>
         <p className="flex text-xl mx-auto font-semibold items-center text-lg mt-1">
           {summary.active_connectors}/{summary.total_connectors}
@@ -115,7 +115,7 @@ function SummaryRow({
       {businessTier && (
         <TableCell>
           <div className="text-sm text-neutral-500 dark:text-neutral-300">
-            Public Connectors
+            公開ナレッジソース
           </div>
           <p className="flex text-xl mx-auto font-semibold items-center text-lg mt-1">
             {summary.public_connectors}/{summary.total_connectors}
@@ -125,7 +125,7 @@ function SummaryRow({
 
       <TableCell>
         <div className="text-sm text-neutral-500 dark:text-neutral-300">
-          Total Docs Indexed
+          参照ナレッジ数
         </div>
         <div className="text-xl font-semibold">
           {summary.total_docs_indexed.toLocaleString()}
@@ -209,7 +209,7 @@ function ConnectorRow({
       <TableCell>{ccPairsIndexingStatus.docs_indexed}</TableCell>
       <TableCell>
         {isEditable && (
-          <Tooltip tooltip="Manage Connector">
+          <Tooltip tooltip="ナレッジソースを管理">
             <Button icon={SvgSettings} prominence="tertiary" />
           </Tooltip>
         )}
@@ -268,7 +268,7 @@ function FederatedConnectorRow({
             e.stopPropagation();
             navigateWithModifier(e, federatedUrl, router);
           }}
-          tooltip="Manage Federated Connector"
+          tooltip="連携ナレッジソースを管理"
         />
       </TableCell>
     </TableRow>
@@ -339,12 +339,12 @@ export function CCPairIndexingStatusTable({
                   <>
                     <TableRow className="border border-border dark:border-neutral-700">
                       <TableHead>Name</TableHead>
-                      <TableHead>Last Indexed</TableHead>
+                      <TableHead>最終Index</TableHead>
                       <TableHead>Status</TableHead>
                       {businessTier && (
                         <TableHead>Permissions / Access</TableHead>
                       )}
-                      <TableHead>Total Docs</TableHead>
+                      <TableHead>参照ナレッジ数</TableHead>
                       <TableHead></TableHead>
                     </TableRow>
                     {ccPairStatus.indexing_statuses.map((indexingStatus) => {
@@ -411,7 +411,7 @@ export function CCPairIndexingStatusTable({
                                 className="h-[56px] text-center text-sm text-gray-400 dark:text-gray-500 border-b border-r border-l border-border dark:border-neutral-700"
                               >
                                 <span className="italic">
-                                  All caught up! No more connectors to show
+                                  表示するナレッジソースはこれ以上ありません
                                 </span>
                               </TableCell>
                             ) : (

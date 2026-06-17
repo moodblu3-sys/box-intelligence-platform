@@ -3,6 +3,7 @@
 import React, { useContext } from "react";
 import { SettingsContext } from "@/providers/SettingsProvider";
 import Text from "@/refresh-components/texts/Text";
+import { productDisplayName, PRODUCT_TAGLINE } from "@/lib/branding";
 
 export default function LoginText() {
   const settings = useContext(SettingsContext);
@@ -10,10 +11,10 @@ export default function LoginText() {
     <div className="w-full flex flex-col ">
       <Text as="p" headingH2 text05>
         Welcome to{" "}
-        {(settings && settings?.enterpriseSettings?.application_name) || "Onyx"}
+        {productDisplayName(settings?.enterpriseSettings?.application_name)}
       </Text>
       <Text as="p" text03 mainUiMuted>
-        Your open source AI platform for work
+        {PRODUCT_TAGLINE}
       </Text>
     </div>
   );

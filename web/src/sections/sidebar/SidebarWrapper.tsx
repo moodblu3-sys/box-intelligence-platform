@@ -3,7 +3,7 @@
 import React from "react";
 import { SidebarLayouts } from "@opal/layouts";
 import { useShowLogoWhenFolded } from "@/lib/sidebar/hooks";
-import Logo from "@/refresh-components/Logo";
+import { PRODUCT_NAME } from "@/lib/branding";
 
 /**
  * Renders the app-branded logo for use as the `logo` prop on sidebar primitives.
@@ -11,8 +11,15 @@ import Logo from "@/refresh-components/Logo";
  */
 export function renderAppLogo(folded: boolean | undefined): React.ReactNode {
   return (
-    <div className="px-1">
-      <Logo folded={folded} size={28} />
+    <div className="px-1 flex items-center gap-2">
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-black text-base font-semibold leading-none text-white">
+        K
+      </span>
+      {!folded && (
+        <span className="text-[28px] leading-none font-semibold tracking-normal">
+          {PRODUCT_NAME}
+        </span>
+      )}
     </div>
   );
 }

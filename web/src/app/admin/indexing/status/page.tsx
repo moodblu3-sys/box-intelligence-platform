@@ -191,7 +191,7 @@ function Main() {
           <Spacer rem={3} />
           <Text as="p">
             {markdown(
-              "It looks like you don't have any connectors setup yet. Visit the [Add Connector](/admin/add-connector) page to get started!"
+              "ナレッジソースがまだ設定されていません。[ナレッジソースを追加](/admin/add-connector) から設定してください。"
             )}
           </Text>
         </div>
@@ -222,7 +222,7 @@ export default function Status() {
         icon={route.icon}
         title={route.title}
         rightChildren={
-          <Button href="/admin/add-connector">Add Connector</Button>
+          <Button href="/admin/add-connector">ナレッジソースを追加</Button>
         }
         divider
       />

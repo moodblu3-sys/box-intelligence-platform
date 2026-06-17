@@ -140,7 +140,7 @@ export const FilterComponent = forwardRef<
         >
           <div className="flex items-center justify-between px-2 py-1.5">
             <DropdownMenuLabel className="text-base font-medium">
-              Filter Connectors
+              ナレッジソースを絞り込み
             </DropdownMenuLabel>
           </div>
           <DropdownMenuSeparator />
