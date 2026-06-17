@@ -12,6 +12,8 @@ export interface SourceReference {
   source: SourceName;
   title: string;
   url: string;
+  snippet?: string;
+  score?: number;
 }
 
 export interface JiraTicketDraft {

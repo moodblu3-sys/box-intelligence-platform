@@ -4,7 +4,7 @@
 
 Knowledge Desk APIは、社員からの問い合わせを受け取り、Onyx経由でBox、SharePoint、Jiraのナレッジを横断検索し、情シス問い合わせ向けに正規化した回答を返す。
 
-MVPでは `MockOnyxClient` を利用する。実Onyx APIへ接続する場合は、`OnyxClient` interfaceを実装したクライアントへ差し替える。
+既定では `MockOnyxClient` を利用する。`KNOWLEDGE_DESK_ONYX_MODE=real` を指定すると、実Onyx APIへ接続する `RealOnyxClient` に切り替わる。
 
 ## 起動
 
@@ -18,6 +18,50 @@ npm run start
 ```bash
 KNOWLEDGE_DESK_PORT=8790 npm run start
 ```
+
+## Onyx接続モード
+
+### Mock mode
+
+固定デモデータで動かす。外部Onyxへの接続は不要。
+
+```bash
+KNOWLEDGE_DESK_ONYX_MODE=mock npm run start
+```
+
+`KNOWLEDGE_DESK_ONYX_MODE` 未指定時もmock modeで起動する。
+
+### Real mode
+
+実Onyxへ問い合わせる。
+
+```bash
+KNOWLEDGE_DESK_ONYX_MODE=real \
+ONYX_BASE_URL=http://localhost:3100 \
+ONYX_API_KEY=<personal-access-token-or-api-key> \
+npm run start
+```
+
+`ONYX_BASE_URL` はブラウザから使っているOnyxのURLを指定する。ローカルDocker環境では `http://localhost:3100` を想定。
+
+`ONYX_API_KEY` はOnyxのPersonal Access TokenまたはAPI Key。Knowledge Deskは以下のHeaderでOnyxへ送る。
+
+```http
+Authorization: Bearer <ONYX_API_KEY>
+```
+
+推奨scope:
+
+- Chat Write
+- 必要に応じて Search Read
+
+実Onyxでは次のendpointを呼ぶ。
+
+```http
+POST /api/chat/send-chat-message
+```
+
+`stream=false` で呼び出し、`top_documents` と `tool_calls[].search_docs` からsourceを抽出する。
 
 ## Endpoint
 
@@ -50,17 +94,23 @@ KNOWLEDGE_DESK_PORT=8790 npm run start
     {
       "source": "Box",
       "title": "Box外部共有運用ルール",
-      "url": "box://policies/external-sharing"
+      "url": "box://policies/external-sharing",
+      "snippet": "日新テクノロジー株式会社では、Boxフォルダを外部取引先に共有する場合...",
+      "score": 0.94
     },
     {
       "source": "SharePoint",
       "title": "外部ユーザーがBoxにアクセスできない場合のFAQ",
-      "url": "sharepoint://it-faq/box-external-user-access"
+      "url": "sharepoint://it-faq/box-external-user-access",
+      "snippet": "外部ユーザーがBoxにアクセスできない場合は、招待メールの宛先...",
+      "score": 0.91
     },
     {
       "source": "Jira",
       "title": "BOX-1423 取引先ドメイン未登録によるアクセス不可",
-      "url": "jira://BOX-1423"
+      "url": "jira://BOX-1423",
+      "snippet": "取引先ドメインがBox外部共有の許可リストに登録されておらず...",
+      "score": 0.88
     }
   ],
   "confidence": 0.95,
@@ -85,11 +135,15 @@ KNOWLEDGE_DESK_PORT=8790 npm run start
 {
   "source": "Box",
   "title": "Box外部共有運用ルール",
-  "url": "box://policies/external-sharing"
+  "url": "box://policies/external-sharing",
+  "snippet": "外部共有では、機密区分、招待先メールアドレス、取引先ドメイン許可を確認します。",
+  "score": 0.91
 }
 ```
 
 `source` は `Box`、`SharePoint`、`Jira` のいずれか。
+
+`snippet` と `score` は任意項目。既存の `source` / `title` / `url` は維持するため、既存クライアントとの互換性は壊さない。
 
 ## JiraTicketDraft
 
@@ -111,6 +165,10 @@ MVPではルールベースで判定する。
 - Box / SharePoint が揃うと加点
 - Jiraの過去解決履歴が見つかると加点
 - Box / SharePoint / Jira の3種類が揃えば高confidence
+- usableなsnippetが多い場合は加点
+- snippetが短すぎる、または少なすぎる場合は減点
+- 平均scoreが高い場合は加点、低い場合は減点
+- Jiraがない場合は「過去解決履歴が不足」として減点
 - 回答に「不明」「確認が必要」「担当部門へ確認」「判断できません」「情報不足」が含まれる場合は減点
 - confidenceは0.15から0.95の範囲に丸める
 
@@ -147,6 +205,20 @@ curl -sS http://localhost:8787/api/knowledge-desk/query \
     "question": "取引先にBoxフォルダを共有したいのですが、相手からアクセスできないと言われています。外部共有の条件と、確認すべき手順を教えてください。"
   }'
 ```
+
+## テスト
+
+```bash
+cd apps/knowledge-desk-api
+npm run test
+```
+
+確認対象:
+
+- Mock modeで高confidence回答が返る
+- 情報不足時に `needsEscalation=true` と `jiraTicketDraft` が返る
+- `SourceReference` に `snippet` / `score` が含まれる
+- `RealOnyxClient` がOnyx chat APIレスポンスを正規化できる
 
 情報不足時の動作確認:
 

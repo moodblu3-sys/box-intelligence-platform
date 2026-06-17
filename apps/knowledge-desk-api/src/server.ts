@@ -1,5 +1,6 @@
 import { MockOnyxClient } from "./clients/mockOnyxClient.ts";
 import type { OnyxClient } from "./clients/onyxClient.ts";
+import { createRealOnyxClientFromEnv } from "./clients/realOnyxClient.ts";
 import { KnowledgeDeskValidationError, queryKnowledgeDesk } from "./queryService.ts";
 import type { KnowledgeDeskQueryRequest } from "./types.ts";
 
@@ -8,7 +9,7 @@ interface KnowledgeDeskAppOptions {
 }
 
 export function createKnowledgeDeskApp(options: KnowledgeDeskAppOptions = {}) {
-  const onyxClient = options.onyxClient ?? new MockOnyxClient();
+  const onyxClient = options.onyxClient ?? createOnyxClientFromEnv();
 
   return {
     async fetch(request: Request): Promise<Response> {
@@ -48,6 +49,22 @@ export function createKnowledgeDeskApp(options: KnowledgeDeskAppOptions = {}) {
       }
     },
   };
+}
+
+function createOnyxClientFromEnv(): OnyxClient {
+  const mode = process.env.KNOWLEDGE_DESK_ONYX_MODE ?? "mock";
+
+  if (mode === "mock") {
+    return new MockOnyxClient();
+  }
+
+  if (mode === "real") {
+    return createRealOnyxClientFromEnv();
+  }
+
+  throw new Error(
+    `Unsupported KNOWLEDGE_DESK_ONYX_MODE: ${mode}. Use "mock" or "real".`
+  );
 }
 
 function jsonResponse(body: unknown, status = 200): Response {

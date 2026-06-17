@@ -20,11 +20,23 @@ export function normalizeKnowledgeDeskResponse(
   onyxResult: OnyxQueryResult
 ): KnowledgeDeskResponse {
   const sources = dedupeSources(
-    onyxResult.results.map((result) => ({
-      source: result.source,
-      title: result.title,
-      url: result.url,
-    }))
+    onyxResult.results.map((result) => {
+      const source: SourceReference = {
+        source: result.source,
+        title: result.title,
+        url: result.url,
+      };
+
+      if (result.content.trim().length > 0) {
+        source.snippet = result.content.trim();
+      }
+
+      if (Number.isFinite(result.score)) {
+        source.score = result.score;
+      }
+
+      return source;
+    })
   );
 
   const answer =
@@ -69,7 +81,7 @@ function calculateConfidence(answer: string, sources: SourceReference[]): number
   }
 
   const sourceTypes = new Set<SourceName>(sources.map((source) => source.source));
-  let confidence = 0.36 + sourceTypes.size * 0.13;
+  let confidence = 0.32 + sourceTypes.size * 0.12;
 
   if (sourceTypes.has("Box") && sourceTypes.has("SharePoint")) {
     confidence += 0.12;
@@ -78,7 +90,7 @@ function calculateConfidence(answer: string, sources: SourceReference[]): number
   if (sourceTypes.has("Jira")) {
     confidence += 0.14;
   } else {
-    confidence -= 0.12;
+    confidence -= 0.14;
   }
 
   if (
@@ -86,7 +98,30 @@ function calculateConfidence(answer: string, sources: SourceReference[]): number
     sourceTypes.has("SharePoint") &&
     sourceTypes.has("Jira")
   ) {
-    confidence += 0.12;
+    confidence += 0.14;
+  }
+
+  const sourcesWithUsableSnippets = sources.filter(
+    (source) => (source.snippet?.trim().length ?? 0) >= 40
+  ).length;
+  const snippetCoverage = sourcesWithUsableSnippets / sources.length;
+  if (snippetCoverage >= 0.75) {
+    confidence += 0.08;
+  } else if (snippetCoverage < 0.5) {
+    confidence -= 0.12;
+  }
+
+  const scoreValues = sources
+    .map((source) => source.score)
+    .filter((score): score is number => typeof score === "number");
+  if (scoreValues.length > 0) {
+    const averageScore =
+      scoreValues.reduce((sum, score) => sum + score, 0) / scoreValues.length;
+    if (averageScore >= 0.85) {
+      confidence += 0.05;
+    } else if (averageScore < 0.55) {
+      confidence -= 0.08;
+    }
   }
 
   const uncertaintyPenalty = UNCERTAINTY_TERMS.filter((term) =>
@@ -104,6 +139,11 @@ function buildEscalationReason(
   if (confidence < 0.6) {
     if (sources.length === 0) {
       return "関連するBox、SharePoint、Jiraのナレッジが見つからないため、情シス部門で確認が必要です。";
+    }
+
+    const sourceTypes = new Set<SourceName>(sources.map((source) => source.source));
+    if (!sourceTypes.has("Jira")) {
+      return "Jiraの過去解決履歴が不足しており、誤案内の可能性があるため、情シス部門で確認が必要です。";
     }
 
     return "回答根拠が不足しており、誤案内の可能性があるため、情シス部門で確認が必要です。";
