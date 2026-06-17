@@ -3,25 +3,14 @@
 import React from "react";
 import { SidebarLayouts } from "@opal/layouts";
 import { useShowLogoWhenFolded } from "@/lib/sidebar/hooks";
-import { PRODUCT_NAME } from "@/lib/branding";
+import { KnotLogo } from "@/refresh-components/KnotLogo";
 
 /**
  * Renders the app-branded logo for use as the `logo` prop on sidebar primitives.
  * Exported so other sidebar entry points (e.g. AdminSidebar) can reuse it.
  */
 export function renderAppLogo(folded: boolean | undefined): React.ReactNode {
-  return (
-    <div className="px-1 flex items-center gap-2">
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-black text-base font-semibold leading-none text-white">
-        K
-      </span>
-      {!folded && (
-        <span className="text-[28px] leading-none font-semibold tracking-normal">
-          {PRODUCT_NAME}
-        </span>
-      )}
-    </div>
-  );
+  return <KnotLogo folded={folded} className="px-1" />;
 }
 
 export interface SidebarWrapperProps {

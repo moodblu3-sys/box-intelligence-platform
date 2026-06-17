@@ -10,8 +10,8 @@ import Text from "@/refresh-components/texts/Text";
 import Truncated from "@/refresh-components/texts/Truncated";
 import { useMemo } from "react";
 import { SvgOnyxLogo } from "@opal/logos";
+import { KnotLogo, KnotLogoMark } from "@/refresh-components/KnotLogo";
 import {
-  PRODUCT_NAME,
   PRODUCT_FOOTER,
   productDisplayName,
 } from "@/lib/branding";
@@ -76,7 +76,7 @@ export default function Logo({
       />
     </div>
   ) : (
-    <SvgOnyxLogo size={resolvedSize} className={cn("shrink-0", className)} />
+    <KnotLogoMark size={resolvedSize} className={className} />
   );
 
   const renderNameAndPoweredBy = (opts: {
@@ -123,11 +123,8 @@ export default function Logo({
   return applicationName ? (
     renderNameAndPoweredBy({ includeLogo: true, includeName: true })
   ) : folded ? (
-    <SvgOnyxLogo size={resolvedSize} className={cn("shrink-0", className)} />
+    <KnotLogoMark size={resolvedSize} className={className} />
   ) : (
-    <div className={cn("flex items-center gap-2", className)}>
-      <SvgOnyxLogo size={resolvedSize} className="shrink-0" />
-      <Truncated headingH3>{PRODUCT_NAME}</Truncated>
-    </div>
+    <KnotLogo size={resolvedSize} className={className} />
   );
 }

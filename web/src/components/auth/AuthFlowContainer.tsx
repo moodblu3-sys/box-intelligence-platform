@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { SvgOnyxLogo } from "@opal/logos";
 import { PRODUCT_NAME } from "@/lib/branding";
+import { KnotLogoMark } from "@/refresh-components/KnotLogo";
 
 export default function AuthFlowContainer({
   children,
@@ -14,7 +14,7 @@ export default function AuthFlowContainer({
   return (
     <div className="p-4 flex flex-col items-center justify-center min-h-screen bg-background">
       <div className="w-full max-w-md flex items-start flex-col bg-background-tint-00 rounded-16 shadow-lg shadow-02 p-6">
-        <SvgOnyxLogo size={44} className="text-theme-primary-05" />
+        <KnotLogoMark size={44} />
         <div className="w-full mt-3">{children}</div>
       </div>
       {authState === "login" && (
