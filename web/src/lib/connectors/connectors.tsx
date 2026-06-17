@@ -2041,6 +2041,7 @@ export interface JiraConfig {
 
 export interface SalesforceConfig {
   requested_objects?: string[];
+  custom_query_config?: string;
 }
 
 export interface SharepointConfig {
