@@ -1,0 +1,63 @@
+import { MockOnyxClient } from "./clients/mockOnyxClient.ts";
+import type { OnyxClient } from "./clients/onyxClient.ts";
+import { KnowledgeDeskValidationError, queryKnowledgeDesk } from "./queryService.ts";
+import type { KnowledgeDeskQueryRequest } from "./types.ts";
+
+interface KnowledgeDeskAppOptions {
+  onyxClient?: OnyxClient;
+}
+
+export function createKnowledgeDeskApp(options: KnowledgeDeskAppOptions = {}) {
+  const onyxClient = options.onyxClient ?? new MockOnyxClient();
+
+  return {
+    async fetch(request: Request): Promise<Response> {
+      const url = new URL(request.url);
+
+      if (request.method === "OPTIONS") {
+        return jsonResponse({}, 204);
+      }
+
+      if (request.method === "GET" && url.pathname === "/health") {
+        return jsonResponse({ status: "ok", service: "knowledge-desk-api" });
+      }
+
+      if (url.pathname !== "/api/knowledge-desk/query") {
+        return jsonResponse({ error: "Not found" }, 404);
+      }
+
+      if (request.method !== "POST") {
+        return jsonResponse({ error: "Method not allowed" }, 405);
+      }
+
+      try {
+        const body = (await request.json()) as KnowledgeDeskQueryRequest;
+        const result = await queryKnowledgeDesk(body, onyxClient);
+        return jsonResponse(result);
+      } catch (error) {
+        if (error instanceof SyntaxError) {
+          return jsonResponse({ error: "Invalid JSON body." }, 400);
+        }
+
+        if (error instanceof KnowledgeDeskValidationError) {
+          return jsonResponse({ error: error.message }, 400);
+        }
+
+        console.error("Knowledge Desk query failed", error);
+        return jsonResponse({ error: "Internal server error" }, 500);
+      }
+    },
+  };
+}
+
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(status === 204 ? null : JSON.stringify(body, null, 2), {
+    status,
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type,Authorization",
+    },
+  });
+}
