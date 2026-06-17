@@ -12,13 +12,13 @@ export function KnotLogoMark({
     <span
       aria-hidden="true"
       className={cn(
-        "flex shrink-0 items-center justify-center rounded-md bg-black font-semibold leading-none text-white",
+        "flex shrink-0 items-center justify-center rounded-[7px] bg-[#111827] font-semibold leading-none text-white",
         className
       )}
       style={{
         width: size,
         height: size,
-        fontSize: Math.max(12, Math.round(size * 0.57)),
+        fontSize: Math.max(12, Math.round(size * 0.54)),
       }}
     >
       K
@@ -36,10 +36,10 @@ export function KnotLogo({
   className?: string;
 }) {
   return (
-    <div className={cn("flex items-center gap-2", className)}>
+    <div className={cn("flex items-center gap-[7px]", className)}>
       <KnotLogoMark size={size} />
       {!folded && (
-        <span className="text-[28px] leading-none font-semibold tracking-normal">
+        <span className="text-[25px] leading-none font-semibold tracking-normal text-[#171717]">
           {PRODUCT_NAME}
         </span>
       )}
