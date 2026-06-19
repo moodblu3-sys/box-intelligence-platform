@@ -341,6 +341,27 @@ describe("Knowledge Desk API", () => {
     assert.equal(jiraCreateIssueCount, 1);
     assert.match(thanksBody.text, /どういたしまして/);
     assert.doesNotMatch(replies.at(-1) ?? "", /Jiraに起票しました|この回答で解決しましたか/);
+
+    const closingResponse = await app.fetch(
+      new Request("http://localhost/api/knowledge-desk/teams/bot/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...baseActivity,
+          id: "activity-closing",
+          text: "また聞くね",
+        }),
+      })
+    );
+    const closingBody = await closingResponse.json();
+
+    assert.equal(closingResponse.status, 200);
+    assert.equal(jiraCreateIssueCount, 1);
+    assert.match(closingBody.text, /いつでも聞いてください/);
+    assert.doesNotMatch(
+      replies.at(-1) ?? "",
+      /Jiraに起票しました|この回答で解決しましたか|エスカレーション/
+    );
   });
 
   test("acknowledges Teams Bot activity immediately in connector reply mode", async () => {

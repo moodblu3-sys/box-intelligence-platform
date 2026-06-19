@@ -311,22 +311,50 @@ function getSmallTalkReply(activity: TeamsBotActivity): string | null {
     return null;
   }
 
-  const isSmallTalk = [
+  const gratitudePhrases = [
     "ありがとう",
     "ありがとうございます",
     "助かった",
-    "了解",
-    "承知",
-    "ok",
-    "okay",
+    "助かりました",
     "thanks",
     "thank you",
     "thx",
-  ].some((phrase) => normalized.includes(phrase));
+  ];
+  const closingPhrases = [
+    "また聞",
+    "また相談",
+    "また連絡",
+    "後で聞",
+    "あとで聞",
+    "いったん大丈夫",
+    "一旦大丈夫",
+    "大丈夫です",
+    "またお願い",
+    "またよろしく",
+  ];
+  const acknowledgementPhrases = [
+    "了解",
+    "承知",
+    "わかった",
+    "分かった",
+    "わかりました",
+    "ok",
+    "okay",
+  ];
 
-  return isSmallTalk
-    ? "どういたしまして。必要になったらまた聞いてください。"
-    : null;
+  if (gratitudePhrases.some((phrase) => normalized.includes(phrase))) {
+    return "どういたしまして。必要になったらまた聞いてください。";
+  }
+
+  if (closingPhrases.some((phrase) => normalized.includes(phrase))) {
+    return "はい。いつでも聞いてください。";
+  }
+
+  if (acknowledgementPhrases.some((phrase) => normalized.includes(phrase))) {
+    return "承知しました。必要になったらまた聞いてください。";
+  }
+
+  return null;
 }
 
 function extractActivityValueText(value: unknown): string {
