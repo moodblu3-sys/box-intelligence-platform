@@ -24,6 +24,14 @@ export interface JiraTicketDraft {
   assigneeTeam: string;
 }
 
+export interface JiraTicketResult {
+  created: boolean;
+  dryRun: boolean;
+  key: string | null;
+  url: string | null;
+  error: string | null;
+}
+
 export interface KnowledgeDeskResponse {
   answer: string;
   sources: SourceReference[];
@@ -31,6 +39,8 @@ export interface KnowledgeDeskResponse {
   needsEscalation: boolean;
   escalationReason: string | null;
   jiraTicketDraft: JiraTicketDraft | null;
+  jiraTicket: JiraTicketResult | null;
+  jiraTicketUrl: string | null;
 }
 
 export interface OnyxQueryInput {

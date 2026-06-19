@@ -79,6 +79,38 @@ POST /api/chat/send-chat-message
 }
 ```
 
+### POST /api/knowledge-desk/teams/message
+
+Teams BotからのActivity風payloadを受け取り、Knowledge Desk queryへ変換するMVP endpoint。
+Bot Frameworkの認証・署名検証はまだ行わない。
+
+Request:
+
+```json
+{
+  "channelId": "teams",
+  "from": {
+    "userPrincipalName": "suzuki@nisshin-tech.example"
+  },
+  "text": "取引先にBoxフォルダを共有したいのですが、相手からアクセスできないと言われています。外部共有の条件と、確認すべき手順を教えてください。"
+}
+```
+
+Response:
+
+```json
+{
+  "type": "message",
+  "text": "...Teamsに返す本文...",
+  "knowledgeDesk": {
+    "answer": "...",
+    "sources": [],
+    "confidence": 0.86,
+    "needsEscalation": false
+  }
+}
+```
+
 | Field | Type | Required | Description |
 |---|---|---:|---|
 | user | string | yes | 問い合わせユーザー |
@@ -127,7 +159,9 @@ POST /api/chat/send-chat-message
 | confidence | number | 0から1の信頼度 |
 | needsEscalation | boolean | 情シス担当者へのエスカレーションが必要か |
 | escalationReason | string \| null | エスカレーション理由 |
-| jiraTicketDraft | JiraTicketDraft \| null | Jira起票用draft。MVPではJira APIは呼ばない |
+| jiraTicketDraft | JiraTicketDraft \| null | Jira起票用draft |
+| jiraTicket | JiraTicketResult \| null | Jira起票結果。DRY_RUNまたは作成結果を返す |
+| jiraTicketUrl | string \| null | 作成されたJira Issue URL |
 
 ## SourceReference
 
@@ -176,6 +210,20 @@ MVPではルールベースで判定する。
 
 MVPでは `confidence < 0.6` の場合に `needsEscalation=true` とする。
 
+`needsEscalation=true` の場合、Knowledge Desk APIはJira起票処理を実行する。
+安全のため初期設定は `JIRA_DRY_RUN=true` とし、この場合は実Issueを作成せず `jiraTicket.dryRun=true` を返す。
+
+実際にJiraへ起票する場合は以下を設定する。
+
+```env
+JIRA_BASE_URL=https://moodblu3.atlassian.net
+JIRA_EMAIL=moodblu3@gmail.com
+JIRA_API_TOKEN=...
+JIRA_PROJECT_KEY=CIH
+JIRA_ISSUE_TYPE=Task
+JIRA_DRY_RUN=false
+```
+
 sourceが0件の場合:
 
 ```json
@@ -217,6 +265,9 @@ npm run test
 
 - Mock modeで高confidence回答が返る
 - 情報不足時に `needsEscalation=true` と `jiraTicketDraft` が返る
+- DRY_RUN時に `jiraTicket.dryRun=true` が返る
+- Jira client有効時に `jiraTicketUrl` が返る
+- Teams message endpointがTeams向けレスポンスを返す
 - `SourceReference` に `snippet` / `score` が含まれる
 - `RealOnyxClient` がOnyx chat APIレスポンスを正規化できる
 

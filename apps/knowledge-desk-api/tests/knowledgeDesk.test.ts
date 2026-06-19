@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
+import { AtlassianJiraClient } from "../src/clients/jiraClient.ts";
 import { RealOnyxClient } from "../src/clients/realOnyxClient.ts";
 import { normalizeKnowledgeDeskResponse } from "../src/normalizer.ts";
 import { createKnowledgeDeskApp } from "../src/server.ts";
@@ -66,6 +67,129 @@ describe("Knowledge Desk API", () => {
     assert.deepEqual(body.sources, []);
     assert.match(body.jiraTicketDraft.title, /問い合わせ/);
     assert.ok(body.jiraTicketDraft.labels.includes("knowledge-desk"));
+    assert.equal(body.jiraTicket.created, false);
+    assert.equal(body.jiraTicket.dryRun, true);
+    assert.equal(body.jiraTicketUrl, null);
+  });
+
+  test("creates a Jira issue through the configured Jira client on escalation", async () => {
+    const app = createKnowledgeDeskApp({
+      jiraClient: {
+        async createIssue(input) {
+          assert.match(input.draft.title, /問い合わせ/);
+          assert.equal(input.requester, "suzuki@nisshin-tech.example");
+
+          return {
+            created: true,
+            dryRun: false,
+            key: "CIH-123",
+            url: "https://moodblu3.atlassian.net/browse/CIH-123",
+            error: null,
+          };
+        },
+      },
+    });
+    const response = await app.fetch(
+      new Request("http://localhost/api/knowledge-desk/query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user: "suzuki@nisshin-tech.example",
+          channel: "teams",
+          question: "社内VPNが海外出張先からつながりません。原因を教えてください。",
+        }),
+      })
+    );
+
+    assert.equal(response.status, 200);
+    const body = await response.json();
+
+    assert.equal(body.needsEscalation, true);
+    assert.equal(body.jiraTicket.created, true);
+    assert.equal(body.jiraTicket.key, "CIH-123");
+    assert.equal(
+      body.jiraTicketUrl,
+      "https://moodblu3.atlassian.net/browse/CIH-123"
+    );
+  });
+
+  test("AtlassianJiraClient posts an issue to Jira Cloud", async () => {
+    let capturedRequest: { url: string; body: Record<string, unknown> } | null =
+      null;
+    const fetchFn = async (
+      input: string | URL | Request,
+      init?: RequestInit
+    ): Promise<Response> => {
+      capturedRequest = {
+        url: input.toString(),
+        body: JSON.parse(String(init?.body)) as Record<string, unknown>,
+      };
+
+      return new Response(JSON.stringify({ key: "CIH-456" }), {
+        status: 201,
+        headers: { "Content-Type": "application/json" },
+      });
+    };
+    const client = new AtlassianJiraClient({
+      baseUrl: "https://moodblu3.atlassian.net/",
+      email: "moodblu3@gmail.com",
+      apiToken: "test-token",
+      projectKey: "CIH",
+      issueType: "Task",
+      fetchFn,
+    });
+
+    const result = await client.createIssue({
+      requester: "suzuki@nisshin-tech.example",
+      question: "解決できないので起票してください。",
+      draft: {
+        title: "社内問い合わせ: ナレッジ不足により要確認",
+        description: "問い合わせ内容です。",
+        priority: "Medium",
+        labels: ["knowledge-desk", "needs-triage"],
+        assigneeTeam: "Corporate IT",
+      },
+    });
+
+    assert.equal(
+      capturedRequest?.url,
+      "https://moodblu3.atlassian.net/rest/api/3/issue"
+    );
+    const fields = capturedRequest?.body.fields as {
+      project: { key: string };
+      issuetype: { name: string };
+      labels: string[];
+    };
+    assert.equal(fields.project.key, "CIH");
+    assert.equal(fields.issuetype.name, "Task");
+    assert.deepEqual(fields.labels, ["knowledge-desk", "needs-triage"]);
+    assert.equal(result.created, true);
+    assert.equal(result.url, "https://moodblu3.atlassian.net/browse/CIH-456");
+  });
+
+  test("accepts a Teams message activity and returns a Teams message response", async () => {
+    const app = createKnowledgeDeskApp();
+    const response = await app.fetch(
+      new Request("http://localhost/api/knowledge-desk/teams/message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          channelId: "teams",
+          from: {
+            userPrincipalName: "suzuki@nisshin-tech.example",
+          },
+          text: DEMO_QUESTION,
+        }),
+      })
+    );
+
+    assert.equal(response.status, 200);
+    const body = await response.json();
+
+    assert.equal(body.type, "message");
+    assert.match(body.text, /参照元/);
+    assert.equal(body.knowledgeDesk.needsEscalation, false);
+    assert.equal(body.knowledgeDesk.sources.length, 3);
   });
 
   test("normalizer returns source snippets and scores", () => {

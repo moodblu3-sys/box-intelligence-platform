@@ -1,3 +1,4 @@
+import type { JiraClient } from "./clients/jiraClient.ts";
 import type { OnyxClient } from "./clients/onyxClient.ts";
 import type { KnowledgeDeskQueryRequest, KnowledgeDeskResponse } from "./types.ts";
 import { normalizeKnowledgeDeskResponse } from "./normalizer.ts";
@@ -13,7 +14,8 @@ export class KnowledgeDeskValidationError extends Error {
 
 export async function queryKnowledgeDesk(
   request: KnowledgeDeskQueryRequest,
-  onyxClient: OnyxClient
+  onyxClient: OnyxClient,
+  jiraClient?: JiraClient
 ): Promise<KnowledgeDeskResponse> {
   validateRequest(request);
 
@@ -24,7 +26,23 @@ export async function queryKnowledgeDesk(
     sources: [...KNOWLEDGE_DESK_SOURCES],
   });
 
-  return normalizeKnowledgeDeskResponse(request, onyxResult);
+  const normalized = normalizeKnowledgeDeskResponse(request, onyxResult);
+
+  if (normalized.needsEscalation && normalized.jiraTicketDraft && jiraClient) {
+    const jiraTicket = await jiraClient.createIssue({
+      draft: normalized.jiraTicketDraft,
+      requester: request.user.trim(),
+      question: request.question.trim(),
+    });
+
+    return {
+      ...normalized,
+      jiraTicket,
+      jiraTicketUrl: jiraTicket.url,
+    };
+  }
+
+  return normalized;
 }
 
 function validateRequest(request: KnowledgeDeskQueryRequest): void {

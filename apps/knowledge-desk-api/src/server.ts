@@ -1,15 +1,26 @@
+import {
+  createJiraClientFromEnv,
+  type JiraClient,
+} from "./clients/jiraClient.ts";
 import { MockOnyxClient } from "./clients/mockOnyxClient.ts";
 import type { OnyxClient } from "./clients/onyxClient.ts";
 import { createRealOnyxClientFromEnv } from "./clients/realOnyxClient.ts";
 import { KnowledgeDeskValidationError, queryKnowledgeDesk } from "./queryService.ts";
+import {
+  knowledgeDeskResponseToTeamsMessage,
+  teamsMessageToKnowledgeDeskRequest,
+  type TeamsMessageRequest,
+} from "./teamsAdapter.ts";
 import type { KnowledgeDeskQueryRequest } from "./types.ts";
 
 interface KnowledgeDeskAppOptions {
   onyxClient?: OnyxClient;
+  jiraClient?: JiraClient;
 }
 
 export function createKnowledgeDeskApp(options: KnowledgeDeskAppOptions = {}) {
   const onyxClient = options.onyxClient ?? createOnyxClientFromEnv();
+  const jiraClient = options.jiraClient ?? createJiraClientFromEnv();
 
   return {
     async fetch(request: Request): Promise<Response> {
@@ -23,7 +34,10 @@ export function createKnowledgeDeskApp(options: KnowledgeDeskAppOptions = {}) {
         return jsonResponse({ status: "ok", service: "knowledge-desk-api" });
       }
 
-      if (url.pathname !== "/api/knowledge-desk/query") {
+      if (
+        url.pathname !== "/api/knowledge-desk/query" &&
+        url.pathname !== "/api/knowledge-desk/teams/message"
+      ) {
         return jsonResponse({ error: "Not found" }, 404);
       }
 
@@ -32,8 +46,15 @@ export function createKnowledgeDeskApp(options: KnowledgeDeskAppOptions = {}) {
       }
 
       try {
-        const body = (await request.json()) as KnowledgeDeskQueryRequest;
-        const result = await queryKnowledgeDesk(body, onyxClient);
+        const requestBody = await request.json();
+        const body =
+          url.pathname === "/api/knowledge-desk/teams/message"
+            ? teamsMessageToKnowledgeDeskRequest(requestBody as TeamsMessageRequest)
+            : (requestBody as KnowledgeDeskQueryRequest);
+        const result = await queryKnowledgeDesk(body, onyxClient, jiraClient);
+        if (url.pathname === "/api/knowledge-desk/teams/message") {
+          return jsonResponse(knowledgeDeskResponseToTeamsMessage(result));
+        }
         return jsonResponse(result);
       } catch (error) {
         if (error instanceof SyntaxError) {

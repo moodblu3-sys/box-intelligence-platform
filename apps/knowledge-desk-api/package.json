@@ -5,6 +5,13 @@
   "type": "module",
   "scripts": {
     "start": "node --experimental-strip-types src/index.ts",
+    "start:env": "node --env-file=.env --experimental-strip-types src/index.ts",
+    "smoke:real": "node --experimental-strip-types scripts/smoke-real.ts",
+    "smoke:real:env": "node --env-file=.env --experimental-strip-types scripts/smoke-real.ts",
+    "smoke:jira": "node --experimental-strip-types scripts/smoke-jira.ts",
+    "smoke:jira:env": "node --env-file=.env --experimental-strip-types scripts/smoke-jira.ts",
+    "smoke:teams": "node --experimental-strip-types scripts/smoke-teams.ts",
+    "smoke:teams:env": "node --env-file=.env --experimental-strip-types scripts/smoke-teams.ts",
     "test": "node --experimental-strip-types --test tests/*.test.ts"
   }
 }

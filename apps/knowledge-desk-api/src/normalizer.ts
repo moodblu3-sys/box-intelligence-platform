@@ -59,6 +59,8 @@ export function normalizeKnowledgeDeskResponse(
     jiraTicketDraft: needsEscalation
       ? buildJiraTicketDraft(request, escalationReason)
       : null,
+    jiraTicket: null,
+    jiraTicketUrl: null,
   };
 }
 
