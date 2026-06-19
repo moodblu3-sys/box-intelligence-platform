@@ -65,14 +65,12 @@ export function knowledgeDeskResponseToTeamsBotMessage(
     type: "message",
     text: [
       formatTeamsAnswer(response),
-      "",
       formatSources(response),
-      "",
       formatResolutionPrompt(),
       formatEscalation(response),
     ]
       .filter((part) => part.trim().length > 0)
-      .join("\n"),
+      .join("\n\n---\n\n"),
     knowledgeDesk: response,
     suggestedActions: response.needsEscalation
       ? undefined
@@ -137,7 +135,8 @@ function formatSources(response: KnowledgeDeskResponse): string {
   }
 
   return [
-    "**主な参照元**",
+    "主な参照元",
+    "",
     ...selectDisplaySources(response).map(
       (source, index) =>
         `${index + 1}. ${source.source}: ${formatSourceTitle(source.title, source.url)}`
@@ -147,7 +146,8 @@ function formatSources(response: KnowledgeDeskResponse): string {
 
 function formatResolutionPrompt(): string {
   return [
-    "**この回答で解決しましたか？**",
+    "この回答で解決しましたか？",
+    "",
     "下のボタン、または `解決しました` / `解決しません` と返信してください。",
   ].join("\n");
 }
