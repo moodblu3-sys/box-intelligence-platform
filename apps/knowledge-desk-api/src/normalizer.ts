@@ -14,12 +14,20 @@ const UNCERTAINTY_TERMS = [
   "判断できません",
   "情報不足",
 ];
+const SERVICE_TERMS = [
+  "VPN",
+  "Box",
+  "SharePoint",
+  "Jira",
+  "Teams",
+  "Salesforce",
+];
 
 export function normalizeKnowledgeDeskResponse(
   request: KnowledgeDeskQueryRequest,
   onyxResult: OnyxQueryResult
 ): KnowledgeDeskResponse {
-  const sources = dedupeSources(
+  const rawSources = dedupeSources(
     onyxResult.results.map((result) => {
       const source: SourceReference = {
         source: result.source,
@@ -38,13 +46,15 @@ export function normalizeKnowledgeDeskResponse(
       return source;
     })
   );
+  const sources = filterRelevantSources(request.question, rawSources);
 
   const answer =
-    onyxResult.answer ??
-    [
-      "現時点のナレッジでは、この問い合わせに回答するための十分な根拠が見つかりませんでした。",
-      "情シス部門で詳細確認が必要です。",
-    ].join("\n");
+    sources.length > 0 && onyxResult.answer
+      ? onyxResult.answer
+      : [
+          "現時点のナレッジでは、この問い合わせに回答するための十分な根拠が見つかりませんでした。",
+          "情シス部門で詳細確認が必要です。",
+        ].join("\n");
 
   const confidence = calculateConfidence(answer, sources);
   const escalationReason = buildEscalationReason(confidence, sources);
@@ -75,6 +85,69 @@ function dedupeSources(sources: SourceReference[]): SourceReference[] {
     seen.add(key);
     return true;
   });
+}
+
+function filterRelevantSources(
+  question: string,
+  sources: SourceReference[]
+): SourceReference[] {
+  const queryTerms = extractQueryTerms(question);
+  if (queryTerms.length === 0) {
+    return sources;
+  }
+
+  const queryServiceTerms = SERVICE_TERMS.filter((term) =>
+    normalizeText(question).includes(normalizeText(term))
+  );
+
+  return sources.filter((source) => {
+    if (queryServiceTerms.length > 0) {
+      return sourceMatchesQueryTerms(source, queryServiceTerms);
+    }
+
+    return sourceMatchesQueryTerms(source, queryTerms);
+  });
+}
+
+function sourceMatchesQueryTerms(
+  source: SourceReference,
+  queryTerms: string[]
+): boolean {
+  const sourceText = normalizeText(
+    [source.source, source.title, source.snippet ?? ""].join(" ")
+  );
+
+  return queryTerms.some((term) => sourceText.includes(normalizeText(term)));
+}
+
+function extractQueryTerms(question: string): string[] {
+  const normalizedQuestion = normalizeText(question);
+  const domainTerms = [
+    ...SERVICE_TERMS,
+    "共有",
+    "外部共有",
+    "外部",
+    "取引先",
+    "フォルダ",
+    "アクセス",
+    "ログイン",
+    "メール",
+    "招待",
+    "パスワード",
+    "アカウント",
+    "ネットワーク",
+    "接続",
+    "繋がらない",
+    "つながらない",
+  ].filter((term) => normalizedQuestion.includes(normalizeText(term)));
+
+  const asciiTerms = normalizedQuestion.match(/[a-z0-9][a-z0-9_-]{1,}/g) ?? [];
+
+  return [...new Set([...domainTerms, ...asciiTerms])];
+}
+
+function normalizeText(text: string): string {
+  return text.toLowerCase().replace(/\s+/g, "");
 }
 
 function calculateConfidence(answer: string, sources: SourceReference[]): number {

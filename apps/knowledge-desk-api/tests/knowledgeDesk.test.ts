@@ -429,6 +429,87 @@ describe("Knowledge Desk API", () => {
     assert.equal(capturedReply, "はい。必要になったらいつでも聞いてください。");
   });
 
+  test("does not answer a VPN question with unrelated Box external sharing sources", async () => {
+    let capturedReply: string | null = null;
+    const app = createKnowledgeDeskApp({
+      onyxClient: {
+        async query() {
+          return {
+            answer: "Box外部共有では、取引先ドメインと招待メールを確認します。",
+            results: [
+              {
+                source: "Box",
+                title: "Box外部共有運用ルール",
+                url: "box://policies/external-sharing",
+                content:
+                  "Boxフォルダを外部取引先に共有する場合、外部コラボレーター招待を使います。",
+                score: 0.96,
+              },
+              {
+                source: "SharePoint",
+                title: "Box外部共有トラブル対応FAQ",
+                url: "sharepoint://it-faq/box-external-sharing",
+                content:
+                  "外部ユーザーがBoxにアクセスできない場合は、招待メールとドメイン許可を確認します。",
+                score: 0.94,
+              },
+            ],
+          };
+        },
+      },
+      messageIntentClassifier: {
+        async classify() {
+          return {
+            intent: "knowledge_question",
+            confidence: 0.9,
+            replyText: null,
+            reason: "VPN接続に関する問い合わせ。",
+          };
+        },
+      },
+      teamsBotClient: {
+        async sendReply(input) {
+          capturedReply = input.text;
+
+          return {
+            sent: true,
+            status: 201,
+            error: null,
+          };
+        },
+      },
+    });
+
+    const response = await app.fetch(
+      new Request("http://localhost/api/knowledge-desk/teams/bot/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "message",
+          id: "activity-vpn",
+          serviceUrl: "https://smba.trafficmanager.net/jp/",
+          channelId: "msteams",
+          conversation: {
+            id: "conversation-vpn",
+          },
+          from: {
+            aadObjectId: "user-object-id",
+            name: "鈴木",
+          },
+          text: "VPN繋がらない",
+        }),
+      })
+    );
+    const body = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(body.knowledgeDesk.needsEscalation, true);
+    assert.equal(body.knowledgeDesk.sources.length, 0);
+    assert.match(capturedReply ?? "", /十分な根拠/);
+    assert.doesNotMatch(capturedReply ?? "", /Box外部共有の確認手順/);
+    assert.doesNotMatch(capturedReply ?? "", /主な参照元/);
+  });
+
   test("acknowledges Teams Bot activity immediately in connector reply mode", async () => {
     const previousReplyMode = process.env.TEAMS_BOT_REPLY_MODE;
     process.env.TEAMS_BOT_REPLY_MODE = "connector";
