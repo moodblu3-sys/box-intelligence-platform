@@ -10,6 +10,8 @@ import type { KnowledgeDeskQueryRequest } from "../src/types.ts";
 const DEMO_QUESTION =
   "取引先にBoxフォルダを共有したいのですが、相手からアクセスできないと言われています。外部共有の条件と、確認すべき手順を教えてください。";
 
+process.env.KNOWLEDGE_DESK_INTENT_MODE = "rule";
+
 describe("Knowledge Desk API", () => {
   test("returns a multi-source answer without escalation for the demo question", async () => {
     const app = createKnowledgeDeskApp();
@@ -362,6 +364,69 @@ describe("Knowledge Desk API", () => {
       replies.at(-1) ?? "",
       /Jiraに起票しました|この回答で解決しましたか|エスカレーション/
     );
+  });
+
+  test("uses the message intent classifier before searching knowledge sources", async () => {
+    let queriedKnowledgeSources = false;
+    let capturedReply: string | null = null;
+    const app = createKnowledgeDeskApp({
+      onyxClient: {
+        async query() {
+          queriedKnowledgeSources = true;
+          throw new Error("This message should not be searched.");
+        },
+      },
+      messageIntentClassifier: {
+        async classify(input) {
+          assert.equal(input.text, "少し考えてからまた相談します");
+
+          return {
+            intent: "conversation_closing",
+            confidence: 0.94,
+            replyText: "はい。必要になったらいつでも聞いてください。",
+            reason: "利用者は質問ではなく会話を閉じている。",
+          };
+        },
+      },
+      teamsBotClient: {
+        async sendReply(input) {
+          capturedReply = input.text;
+
+          return {
+            sent: true,
+            status: 201,
+            error: null,
+          };
+        },
+      },
+    });
+
+    const response = await app.fetch(
+      new Request("http://localhost/api/knowledge-desk/teams/bot/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "message",
+          id: "activity-ai-intent",
+          serviceUrl: "https://smba.trafficmanager.net/jp/",
+          channelId: "msteams",
+          conversation: {
+            id: "conversation-ai-intent",
+          },
+          from: {
+            aadObjectId: "user-object-id",
+            name: "鈴木",
+          },
+          text: "少し考えてからまた相談します",
+        }),
+      })
+    );
+    const body = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(queriedKnowledgeSources, false);
+    assert.equal(body.text, "はい。必要になったらいつでも聞いてください。");
+    assert.equal(capturedReply, "はい。必要になったらいつでも聞いてください。");
   });
 
   test("acknowledges Teams Bot activity immediately in connector reply mode", async () => {

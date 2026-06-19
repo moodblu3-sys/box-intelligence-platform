@@ -116,11 +116,15 @@ MICROSOFT_APP_TENANT_ID=...
 KNOWLEDGE_DESK_ONYX_MODE=real
 ONYX_BASE_URL=http://localhost:3100
 ONYX_API_KEY=...
+KNOWLEDGE_DESK_INTENT_MODE=hybrid
+KNOWLEDGE_DESK_INTENT_TIMEOUT_MS=8000
 JIRA_BASE_URL=https://moodblu3.atlassian.net
 JIRA_EMAIL=...
 JIRA_API_TOKEN=...
 JIRA_PROJECT_KEY=CIH
 ```
+
+`KNOWLEDGE_DESK_INTENT_MODE=hybrid` にすると、Teams上の発話が質問なのか、解決確認なのか、お礼や会話終了なのかをOnyx経由のLLMで判定する。Onyxへ接続できない場合は、デモ継続のためローカルの安全ルールにフォールバックする。
 
 ## 6. TeamsにBotを追加
 

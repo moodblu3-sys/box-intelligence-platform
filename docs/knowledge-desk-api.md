@@ -291,6 +291,27 @@ sourceはあるが根拠が弱い場合:
 }
 ```
 
+## Teams Bot入力意図判定
+
+Teams Botでは、回答前に入力意図を分類する。
+
+- `knowledge_question`: 社内ナレッジ検索すべき問い合わせ
+- `resolution_resolved`: 回答で解決したという返信
+- `resolution_unresolved`: 回答で解決しないという返信
+- `ticket_request`: Jira起票依頼
+- `small_talk`: お礼、挨拶、相づち
+- `conversation_closing`: 「また聞く」「あとで確認する」など会話を閉じる発話
+- `unclear`: 意図が不足している短文
+
+`KNOWLEDGE_DESK_INTENT_MODE=hybrid` の場合、Onyx API経由のLLMで文脈を見て判定する。Onyx APIが利用できない場合はローカルの安全ルールにフォールバックする。
+
+```env
+KNOWLEDGE_DESK_INTENT_MODE=hybrid
+KNOWLEDGE_DESK_INTENT_TIMEOUT_MS=8000
+```
+
+この判定により、`ありがとう` や `また聞くね` のような発話をナレッジ検索やJira起票へ流さない。
+
 ## サンプルcurl
 
 ```bash

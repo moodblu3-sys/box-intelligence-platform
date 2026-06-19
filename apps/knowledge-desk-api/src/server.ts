@@ -11,6 +11,13 @@ import type { OnyxClient } from "./clients/onyxClient.ts";
 import { createRealOnyxClientFromEnv } from "./clients/realOnyxClient.ts";
 import { KnowledgeDeskValidationError, queryKnowledgeDesk } from "./queryService.ts";
 import {
+  createMessageIntentClassifierFromEnv,
+  extractActivityValueText,
+  normalizeActionText,
+  type MessageIntentClassifier,
+  type MessageIntentResult,
+} from "./messageIntentClassifier.ts";
+import {
   isTeamsBotMessageActivity,
   knowledgeDeskResponseToTeamsBotMessage,
   teamsBotActivityToKnowledgeDeskRequest,
@@ -37,6 +44,7 @@ interface KnowledgeDeskAppOptions {
   onyxClient?: OnyxClient;
   jiraClient?: JiraClient;
   teamsBotClient?: TeamsBotClient;
+  messageIntentClassifier?: MessageIntentClassifier;
 }
 
 export function createKnowledgeDeskApp(options: KnowledgeDeskAppOptions = {}) {
@@ -44,6 +52,8 @@ export function createKnowledgeDeskApp(options: KnowledgeDeskAppOptions = {}) {
   const jiraClient = options.jiraClient ?? createJiraClientFromEnv();
   const teamsBotClient =
     options.teamsBotClient ?? createTeamsBotClientFromEnv();
+  const messageIntentClassifier =
+    options.messageIntentClassifier ?? createMessageIntentClassifierFromEnv();
   const teamsConversationState = new Map<string, TeamsConversationState>();
 
   return {
@@ -90,6 +100,7 @@ export function createKnowledgeDeskApp(options: KnowledgeDeskAppOptions = {}) {
               onyxClient,
               jiraClient,
               teamsBotClient,
+              messageIntentClassifier,
               teamsConversationState
             ).catch((error: unknown) => {
               console.error("Teams Bot async reply failed", error);
@@ -107,6 +118,7 @@ export function createKnowledgeDeskApp(options: KnowledgeDeskAppOptions = {}) {
               onyxClient,
               jiraClient,
               teamsBotClient,
+              messageIntentClassifier,
               teamsConversationState
             )
           );
@@ -142,6 +154,7 @@ async function deliverTeamsBotReply(
   onyxClient: OnyxClient,
   jiraClient: JiraClient,
   teamsBotClient: TeamsBotClient,
+  messageIntentClassifier: MessageIntentClassifier,
   teamsConversationState: Map<string, TeamsConversationState>
 ) {
   console.info("Teams Bot message received", {
@@ -149,10 +162,26 @@ async function deliverTeamsBotReply(
     conversationId: activity.conversation?.id,
     channelId: activity.channelId,
   });
-  const resolutionAction = getResolutionAction(activity);
-  if (resolutionAction) {
+  const conversationId = activity.conversation?.id;
+  const state = conversationId
+    ? teamsConversationState.get(conversationId)
+    : undefined;
+  const intent = await classifyTeamsBotIntent(
+    activity,
+    state,
+    messageIntentClassifier
+  );
+  console.info("Teams Bot intent classified", {
+    activityId: activity.id,
+    conversationId,
+    intent: intent.intent,
+    confidence: intent.confidence,
+    reason: intent.reason,
+  });
+
+  if (intent.intent === "resolution_resolved") {
     return handleResolutionAction(
-      resolutionAction,
+      "resolved",
       activity,
       jiraClient,
       teamsBotClient,
@@ -160,16 +189,33 @@ async function deliverTeamsBotReply(
     );
   }
 
-  const smallTalkReply = getSmallTalkReply(activity);
-  if (smallTalkReply) {
+  if (
+    intent.intent === "resolution_unresolved" ||
+    intent.intent === "ticket_request"
+  ) {
+    return handleResolutionAction(
+      "unresolved",
+      activity,
+      jiraClient,
+      teamsBotClient,
+      teamsConversationState
+    );
+  }
+
+  if (
+    intent.intent === "small_talk" ||
+    intent.intent === "conversation_closing" ||
+    intent.intent === "unclear"
+  ) {
+    const text = intent.replyText ?? defaultReplyForIntent(intent);
     const delivery = await teamsBotClient.sendReply({
       activity,
-      text: smallTalkReply,
+      text,
     });
 
     return {
       type: "message",
-      text: smallTalkReply,
+      text,
       delivery,
     };
   }
@@ -177,7 +223,6 @@ async function deliverTeamsBotReply(
   const request = teamsBotActivityToKnowledgeDeskRequest(activity);
   const result = await queryKnowledgeDesk(request, onyxClient);
   const message = knowledgeDeskResponseToTeamsBotMessage(result);
-  const conversationId = activity.conversation?.id;
   if (conversationId) {
     teamsConversationState.set(conversationId, {
       request,
@@ -282,102 +327,33 @@ async function handleResolutionAction(
   };
 }
 
-function getResolutionAction(
-  activity: TeamsBotActivity
-): "resolved" | "unresolved" | null {
+async function classifyTeamsBotIntent(
+  activity: TeamsBotActivity,
+  state: TeamsConversationState | undefined,
+  messageIntentClassifier: MessageIntentClassifier
+): Promise<MessageIntentResult> {
   const text = normalizeActionText(activity.text);
   const value = normalizeActionText(extractActivityValueText(activity.value));
-  const actionText = `${text} ${value}`.trim();
 
-  if (
-    actionText.includes("解決しません") ||
-    actionText.includes("解決していません") ||
-    actionText.includes("未解決")
-  ) {
-    return "unresolved";
-  }
-
-  if (actionText.includes("解決しました") || actionText.includes("解決済み")) {
-    return "resolved";
-  }
-
-  return null;
+  return messageIntentClassifier.classify({
+    text,
+    actionText: value,
+    channel: activity.channelId ?? "msteams",
+    hasPendingAnswer: state !== undefined,
+    previousQuestion: state?.request.question ?? null,
+  });
 }
 
-function getSmallTalkReply(activity: TeamsBotActivity): string | null {
-  const text = normalizeActionText(activity.text);
-  const normalized = text.toLowerCase();
-  if (!normalized || normalized.length > 40 || /[?？]/.test(normalized)) {
-    return null;
-  }
-
-  const gratitudePhrases = [
-    "ありがとう",
-    "ありがとうございます",
-    "助かった",
-    "助かりました",
-    "thanks",
-    "thank you",
-    "thx",
-  ];
-  const closingPhrases = [
-    "また聞",
-    "また相談",
-    "また連絡",
-    "後で聞",
-    "あとで聞",
-    "いったん大丈夫",
-    "一旦大丈夫",
-    "大丈夫です",
-    "またお願い",
-    "またよろしく",
-  ];
-  const acknowledgementPhrases = [
-    "了解",
-    "承知",
-    "わかった",
-    "分かった",
-    "わかりました",
-    "ok",
-    "okay",
-  ];
-
-  if (gratitudePhrases.some((phrase) => normalized.includes(phrase))) {
-    return "どういたしまして。必要になったらまた聞いてください。";
-  }
-
-  if (closingPhrases.some((phrase) => normalized.includes(phrase))) {
+function defaultReplyForIntent(intent: MessageIntentResult): string {
+  if (intent.intent === "conversation_closing") {
     return "はい。いつでも聞いてください。";
   }
 
-  if (acknowledgementPhrases.some((phrase) => normalized.includes(phrase))) {
-    return "承知しました。必要になったらまた聞いてください。";
+  if (intent.intent === "unclear") {
+    return "確認したい内容をもう少し具体的に教えてください。";
   }
 
-  return null;
-}
-
-function extractActivityValueText(value: unknown): string {
-  if (typeof value === "string") {
-    return value;
-  }
-
-  if (!value || typeof value !== "object") {
-    return "";
-  }
-
-  const record = value as Record<string, unknown>;
-  return [record.action, record.value, record.text, record.command]
-    .filter((item): item is string => typeof item === "string")
-    .join(" ");
-}
-
-function normalizeActionText(text: string): string {
-  return text
-    .replace(/<at>.*?<\/at>/g, "")
-    .replace(/<[^>]+>/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
+  return "どういたしまして。必要になったらまた聞いてください。";
 }
 
 function buildUnresolvedJiraTicketDraft(
