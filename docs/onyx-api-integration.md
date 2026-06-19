@@ -2,7 +2,7 @@
 
 ## 目的
 
-Knowledge Desk APIから実Onyxへ問い合わせ、Box / SharePoint / Jira の検索結果を使った回答を返すための接続方針を整理する。
+Knowledge Desk APIから実Onyxへ問い合わせ、Box / Jira の検索結果を使った回答を返すための接続方針を整理する。SharePointは同じ設計で追加可能だが、今回はアクセス不可のため後回しにする。
 
 Knowledge Deskの業務ロジックは `apps/knowledge-desk-api/` に閉じる。Onyx本体には問い合わせ業務固有の処理を追加しない。
 
@@ -18,7 +18,7 @@ POST /api/chat/send-chat-message
 
 - 回答文と引用元documentを同時に取得できる
 - `stream=false` を指定するとJSONで扱える
-- `internal_search_filters.source_type` で Box / SharePoint / Jira に検索対象を絞れる
+- `internal_search_filters.source_type` で Box / Jira に検索対象を絞れる。SharePoint復旧後は `sharepoint` も追加する
 - 既存Onyx UIが使っているRAG処理に乗れる
 
 ## Request方針
@@ -41,7 +41,7 @@ Knowledge Deskからは次のように呼び出す。
 }
 ```
 
-`persona_id=0` はOnyxの既定エージェントを使う指定。デモでは、Box / SharePoint / Jira のConnectorが既にindex済みであることを前提にする。
+`persona_id=0` はOnyxの既定エージェントを使う指定。今回のデモでは、Box / Jira のConnectorが既にindex済みであることを前提にする。
 
 ## Responseで使う項目
 
@@ -95,7 +95,7 @@ Knowledge Deskでは以下の環境変数を使う。
 
 ```bash
 KNOWLEDGE_DESK_ONYX_MODE=real
-ONYX_BASE_URL=http://localhost:3000
+ONYX_BASE_URL=http://localhost:3100
 ONYX_API_KEY=...
 ```
 

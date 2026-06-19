@@ -6,7 +6,7 @@
 
 説明:
 
-Knowledge Deskは、Onyxの上に乗る情シス問い合わせAIアプリです。OnyxがBox、SharePoint、Jiraを横断検索し、Knowledge Deskが問い合わせ業務向けに回答、confidence、エスカレーション判定、Jira起票へ正規化します。
+Knowledge Deskは、Onyxの上に乗る情シス問い合わせAIアプリです。OnyxがBox、Jiraを横断検索し、Knowledge Deskが問い合わせ業務向けに回答、confidence、エスカレーション判定、Jira起票へ正規化します。SharePointは復旧後に同じ仕組みへ追加します。
 
 見せるポイント:
 
@@ -22,15 +22,14 @@ Knowledge Deskは、Onyxの上に乗る情シス問い合わせAIアプリです
 | Source | 役割 | デモファイル |
 |---|---|---|
 | Box | 正式な外部共有ルール | `docs/demo-data/box_external_sharing_policy.md` |
-| SharePoint | 社員向けFAQと確認手順 | `docs/demo-data/sharepoint_it_faq.md` |
+| SharePoint | 社員向けFAQと確認手順。今回はアクセス不可のため後回し | `docs/demo-data/sharepoint_it_faq.md` |
 | Jira | 過去問い合わせと解決履歴 | `docs/demo-data/jira_resolution_history.md` |
 
 Real modeの事前チェック:
 
 - Boxに「Box外部共有運用ルール」または同等の正式ルール文書がindexされている
 - Jiraに `CIH-1` などBox外部共有の過去問い合わせがindexされている
-- SharePoint込みで見せる場合は、FAQ文書がindexされている
-- SharePoint無しで進める場合は、説明を「Box + Jiraの暫定E2E確認」に限定する
+- 今回はSharePoint無しで進めるため、説明を「Box + JiraのE2E確認」に限定する
 
 ### 3. APIを起動
 
@@ -53,7 +52,7 @@ Real Onyx mode:
 ```bash
 cd apps/knowledge-desk-api
 KNOWLEDGE_DESK_ONYX_MODE=real \
-ONYX_BASE_URL=http://localhost:3000 \
+ONYX_BASE_URL=http://localhost:3100 \
 ONYX_API_KEY=<personal-access-token-or-api-key> \
 npm run start
 ```
@@ -63,7 +62,7 @@ Jira起票を実行する場合:
 ```bash
 cd apps/knowledge-desk-api
 KNOWLEDGE_DESK_ONYX_MODE=real \
-ONYX_BASE_URL=http://localhost:3000 \
+ONYX_BASE_URL=http://localhost:3100 \
 ONYX_API_KEY=<personal-access-token-or-api-key> \
 JIRA_BASE_URL=https://moodblu3.atlassian.net \
 JIRA_EMAIL=moodblu3@gmail.com \
@@ -74,7 +73,7 @@ JIRA_DRY_RUN=false \
 npm run start
 ```
 
-面接デモでは、まずMock modeでアプリ単体の動作を見せる。その後、実OnyxにBox / SharePoint / Jiraのデモデータがindex済みであればReal modeへ切り替える。
+面接デモでは、まずMock modeでアプリ単体の動作を見せる。その後、実OnyxにBox / Jiraのデモデータがindex済みであればReal modeへ切り替える。SharePointは今回は後回しにし、復旧後に追加できる構成として説明する。
 
 起動確認:
 
@@ -95,7 +94,7 @@ Real mode smoke:
 
 ```bash
 cd apps/knowledge-desk-api
-ONYX_BASE_URL=http://localhost:3000 \
+ONYX_BASE_URL=http://localhost:3100 \
 ONYX_API_KEY=<personal-access-token-or-api-key> \
 npm run smoke:real
 ```
@@ -123,28 +122,28 @@ cd apps/knowledge-desk-api
 npm run smoke:teams:env
 ```
 
-`npm run smoke:real` は、Knowledge Desk APIをreal modeで初期化し、実OnyxのChat/Search APIへデモ質問を投げる。デフォルトではSharePoint未投入の暫定デモを想定し、BoxとJiraのsource、snippet、score、confidenceを検証する。
+`npm run smoke:real` は、Knowledge Desk APIをreal modeで初期化し、実OnyxのChat/Search APIへデモ質問を投げる。デフォルトでは今回の本番デモ範囲であるBoxとJiraのsource、snippet、score、confidenceを検証する。
 
 SharePointまで含めた完全版を確認する場合:
 
 ```bash
-ONYX_BASE_URL=http://localhost:3000 \
+ONYX_BASE_URL=http://localhost:3100 \
 ONYX_API_KEY=<personal-access-token-or-api-key> \
 SMOKE_EXPECTED_SOURCES=Box,SharePoint,Jira \
 npm run smoke:real
 ```
 
-SharePointがまだ使えない場合のfallback:
+SharePointを使わない今回の本番確認:
 
 ```bash
-ONYX_BASE_URL=http://localhost:3000 \
+ONYX_BASE_URL=http://localhost:3100 \
 ONYX_API_KEY=<personal-access-token-or-api-key> \
 SMOKE_EXPECTED_SOURCES=Box,Jira \
 SMOKE_MIN_CONFIDENCE=0.6 \
 npm run smoke:real
 ```
 
-fallbackでは、Boxの正式ルールとJiraの過去解決履歴を根拠に一次回答する。SharePoint FAQがないため、社員向けの画面手順やFAQ由来の補足は弱くなる。SharePointが復旧したら、FAQ文書をindexして `SMOKE_EXPECTED_SOURCES=Box,SharePoint,Jira` に戻す。
+今回は、Boxの正式ルールとJiraの過去解決履歴を根拠に一次回答する。SharePoint FAQがないため、社員向けの画面手順やFAQ由来の補足は弱くなる。SharePointが復旧したら、FAQ文書をindexして `SMOKE_EXPECTED_SOURCES=Box,SharePoint,Jira` に戻す。
 
 ### 4. デモ質問を送る
 
@@ -182,16 +181,15 @@ curl -sS http://localhost:8787/api/knowledge-desk/query \
 期待されるsource:
 
 - Box: Box外部共有運用ルール
-- SharePoint: 外部ユーザーがBoxにアクセスできない場合のFAQ
 - Jira: BOX-1423 取引先ドメイン未登録によるアクセス不可
 
-この3sourceが揃ることで、正式ルール、社員向け手順、過去事例をまとめた回答になる。
+この2sourceで、正式ルールと過去事例をまとめた回答になる。SharePoint復旧後は、社員向け手順も加えて3source回答にする。
 
 ## 成功時の見せ方
 
 確認ポイント:
 
-- `sources` にBox、SharePoint、Jiraが含まれる
+- `sources` にBox、Jiraが含まれる
 - 各sourceに `snippet` と `score` が含まれる
 - `confidence` が高い
 - `needsEscalation=false`
@@ -199,9 +197,9 @@ curl -sS http://localhost:8787/api/knowledge-desk/query \
 
 説明:
 
-このケースでは、正式ルール、FAQ、過去解決履歴が揃っているため、社員に一次回答できる。情シス担当者は個別対応せず、社員自身が確認手順を進められる。
+このケースでは、正式ルールと過去解決履歴が揃っているため、社員に一次回答できる。SharePoint復旧後はFAQ由来の画面手順も補強できる。
 
-SharePoint無しの暫定成功条件:
+今回の成功条件:
 
 - `sources` にBoxとJiraが含まれる
 - Box sourceに正式ルールのsnippetが含まれる
@@ -209,7 +207,7 @@ SharePoint無しの暫定成功条件:
 - `confidence >= 0.6`
 - `needsEscalation=false`
 
-この状態でもデモは可能。ただし「SharePoint FAQも横断している」説明は避ける。説明は「現時点ではBoxとJiraを使った暫定E2E、SharePointが復旧すれば同じAPIで3ソース確認に切り替える」とする。
+この状態でデモは成立する。ただし「SharePoint FAQも横断している」説明は避ける。説明は「現時点ではBoxとJiraを使ったE2E、SharePointが復旧すれば同じAPIで3ソース確認に切り替える」とする。
 
 ## 解決できない場合のJira自動起票
 
@@ -243,7 +241,7 @@ curl -sS http://localhost:8787/api/knowledge-desk/query \
 ## 将来像
 
 1. Teams Botを入口にする。
-2. Onyx実APIに接続し、実際のBox、SharePoint、Jira Connectorの検索結果を使う。今回の次フェーズで `RealOnyxClient` を追加済み。
+2. Onyx実APIに接続し、実際のBox、Jira Connectorの検索結果を使う。SharePointは復旧後に追加する。
 3. ユーザー権限に応じて参照可能なsourceだけで回答する。
 4. 解決できない場合はJira ticket draftをTeamsに表示する。
 5. 情シス担当者の承認後、Jira APIでチケットを作成する。
@@ -251,6 +249,6 @@ curl -sS http://localhost:8787/api/knowledge-desk/query \
 
 ## Box AI単体との差別化トーク
 
-Box AIはBox内文書の理解に強い。一方、情シス問い合わせでは、Boxの正式ルールだけでなく、SharePointのFAQとJiraの過去解決履歴が必要になる。
+Box AIはBox内文書の理解に強い。一方、情シス問い合わせでは、Boxの正式ルールだけでなく、Jiraの過去解決履歴も必要になる。SharePoint FAQは復旧後に追加する。
 
-Knowledge Deskは、Boxを中心にしながら、SharePointとJiraの文脈を合わせて回答する。さらに、confidenceが低い場合はJira起票まで接続できるため、単なる文書要約ではなく、問い合わせ解決プロセスに接続できる。
+Knowledge Deskは、Boxを中心にしながら、Jiraの過去事例を合わせて回答する。さらに、confidenceが低い場合はJira起票まで接続できるため、単なる文書要約ではなく、問い合わせ解決プロセスに接続できる。

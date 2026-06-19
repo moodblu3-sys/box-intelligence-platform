@@ -4,7 +4,7 @@
 
 Knotを、Onyx OSSをベースにした「社内ナレッジ問い合わせAI」として見せる。
 
-単なる検索ではなく、Box / SharePoint / Jiraを横断して問い合わせに回答し、解決できない場合はJiraへ起票するところまで見せる。
+単なる検索ではなく、Box / Jiraを横断して問い合わせに回答し、解決できない場合はJiraへ起票するところまで見せる。SharePointは復旧後の追加対象として説明する。
 
 ## 1時間の基本構成
 
@@ -13,7 +13,7 @@ Knotを、Onyx OSSをベースにした「社内ナレッジ問い合わせAI」
 | 0-5分 | 導入 | スライド1 |
 | 5-10分 | 課題とユースケース | スライド2 |
 | 10-17分 | アーキテクチャ | スライド3 |
-| 17-40分 | メイン実演 | Knot UI / Knowledge Desk API / Box・SharePoint・Jira引用 |
+| 17-40分 | メイン実演 | Knot UI / Knowledge Desk API / Box・Jira引用 |
 | 40-50分 | 未解決時のJira起票デモ | Knowledge Desk API → Jira Issue URL |
 | 50-55分 | 技術的な工夫と今後 | スライド5 |
 | 55-60分 | QA | 必要ならGitHubを少しだけ表示 |
@@ -30,7 +30,7 @@ Knotの全体像を一言で伝える。
 - Product name: Knot
 - Tagline: 社内ナレッジをつなぐAIデスク
 - Built on Onyx OSS
-- Box / SharePoint / Jiraなどを横断して回答
+- Box / Jiraなどを横断して回答
 - 回答できない場合はJira起票へ接続
 
 ### 2. 課題とユースケース
@@ -55,7 +55,7 @@ Knotの全体像を一言で伝える。
 
 - Onyx OSSを検索・RAG基盤として利用
 - Box Connector MVPを追加実装
-- SharePoint / Jira / Teamsなど既存Connectorを利用
+- Jira / Teamsなど既存Connectorを利用。SharePointは復旧後に追加
 - Knowledge Desk APIをOnyxの上に独立アプリとして追加
 - 未解決時はJira APIでIssue起票
 
@@ -67,7 +67,7 @@ Knotの全体像を一言で伝える。
 入れる内容：
 
 - 社員がTeamsから質問する想定
-- KnotがBox / SharePoint / Jiraを横断検索
+- KnotがBox / Jiraを横断検索
 - 回答、根拠、確認手順を返す
 - 情報不足ならJiraに起票
 - 情シスの一次対応を効率化
@@ -94,8 +94,7 @@ Knotの全体像を一言で伝える。
 期待する見せ場：
 
 - Boxの正式ルールを引用
-- SharePoint FAQの確認手順を引用
-- Jiraの過去問い合わせを引用
+- Jiraの過去解決履歴を引用
 - 回答が「手順」としてまとまる
 - 情シス担当者が次に何をすべきか分かる
 

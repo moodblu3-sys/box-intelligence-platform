@@ -2,7 +2,7 @@
 
 ## 概要
 
-Knowledge Desk APIは、社員からの問い合わせを受け取り、Onyx経由でBox、SharePoint、Jiraのナレッジを横断検索し、情シス問い合わせ向けに正規化した回答を返す。
+Knowledge Desk APIは、社員からの問い合わせを受け取り、Onyx経由でBox、Jiraのナレッジを横断検索し、情シス問い合わせ向けに正規化した回答を返す。SharePointは復旧後に追加する。
 
 既定では `MockOnyxClient` を利用する。`KNOWLEDGE_DESK_ONYX_MODE=real` を指定すると、実Onyx APIへ接続する `RealOnyxClient` に切り替わる。
 
@@ -37,12 +37,12 @@ KNOWLEDGE_DESK_ONYX_MODE=mock npm run start
 
 ```bash
 KNOWLEDGE_DESK_ONYX_MODE=real \
-ONYX_BASE_URL=http://localhost:3000 \
+ONYX_BASE_URL=http://localhost:3100 \
 ONYX_API_KEY=<personal-access-token-or-api-key> \
 npm run start
 ```
 
-`ONYX_BASE_URL` はブラウザから使っているOnyxのURLを指定する。ローカルDocker環境では `http://localhost:3000` を想定。
+`ONYX_BASE_URL` はブラウザから使っているOnyxのURLを指定する。ローカルDocker環境では `http://localhost:3100` を想定。
 
 `ONYX_API_KEY` はOnyxのPersonal Access TokenまたはAPI Key。Knowledge Deskは以下のHeaderでOnyxへ送る。
 
