@@ -234,7 +234,10 @@ describe("Knowledge Desk API", () => {
 
     assert.equal(body.type, "message");
     assert.equal(body.delivery.sent, true);
+    assert.match(capturedReply ?? "", /Box外部共有の確認手順/);
     assert.match(capturedReply ?? "", /参照元/);
+    assert.doesNotMatch(capturedReply ?? "", /\|/);
+    assert.doesNotMatch(capturedReply ?? "", /✅|⚠️|🚨/);
     assert.equal(body.knowledgeDesk.needsEscalation, false);
     assert.equal(body.knowledgeDesk.sources.length, 3);
   });

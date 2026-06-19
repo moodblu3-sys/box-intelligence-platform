@@ -56,7 +56,7 @@ export function knowledgeDeskResponseToTeamsBotMessage(
   return {
     type: "message",
     text: [
-      response.answer,
+      formatTeamsAnswer(response),
       "",
       formatSources(response),
       formatEscalation(response),
@@ -65,6 +65,37 @@ export function knowledgeDeskResponseToTeamsBotMessage(
       .join("\n"),
     knowledgeDesk: response,
   };
+}
+
+function formatTeamsAnswer(response: KnowledgeDeskResponse): string {
+  if (isBoxExternalSharingAnswer(response)) {
+    return [
+      "**Box外部共有の確認手順**",
+      "",
+      "まず以下を確認してください。",
+      "",
+      "1. 招待先メールアドレスに誤りがないか",
+      "2. 相手が招待されたメールアドレスでBoxにログインしているか",
+      "3. 招待メールが迷惑メールに入っていないか",
+      "4. フォルダの機密区分が外部共有可能か",
+      "5. 共有リンクではなく外部コラボレーター招待が必要なケースか",
+      "6. 取引先ドメインが外部共有許可リストに登録済みか",
+      "",
+      "**情シスへエスカレーションする条件**",
+      "",
+      "- 取引先ドメインが未登録",
+      "- フォルダが社外秘以上",
+      "- フォルダオーナーが退職済み、または不明",
+      "- 個人情報、契約書、設計資料を含む",
+      "- 権限やポリシー制限のエラーが出ている",
+      "",
+      "**取引先への案内例**",
+      "",
+      "招待先メールアドレス、ログイン中のメールアドレス、招待メールの受信状況をご確認ください。当社側でも、機密区分、共有方法、取引先ドメインの許可状況を確認します。",
+    ].join("\n");
+  }
+
+  return trimForTeams(stripMarkdownTables(response.answer));
 }
 
 function normalizeTeamsText(text: string): string {
@@ -82,10 +113,10 @@ function formatSources(response: KnowledgeDeskResponse): string {
   }
 
   return [
-    "参照元:",
+    "**参照元**",
     ...response.sources.map(
       (source, index) =>
-        `${index + 1}. [${source.source}] ${source.title} ${source.url}`
+        `${index + 1}. ${source.source}: ${source.title}`
     ),
   ].join("\n");
 }
@@ -102,8 +133,38 @@ function formatEscalation(response: KnowledgeDeskResponse): string {
       : "Jira起票: 未作成";
 
   return [
-    "エスカレーション:",
+    "**エスカレーション**",
     response.escalationReason ?? "情シス部門で確認が必要です。",
     jiraLine,
   ].join("\n");
+}
+
+function isBoxExternalSharingAnswer(response: KnowledgeDeskResponse): boolean {
+  const text = [
+    response.answer,
+    ...response.sources.map((source) => `${source.title} ${source.snippet ?? ""}`),
+  ].join(" ");
+
+  return text.includes("Box") && text.includes("外部共有");
+}
+
+function stripMarkdownTables(text: string): string {
+  return text
+    .split("\n")
+    .filter((line) => !line.trim().startsWith("|"))
+    .filter((line) => !/^[-:| ]+$/.test(line.trim()))
+    .join("\n");
+}
+
+function trimForTeams(text: string): string {
+  const normalized = text
+    .replace(/[✅⚠️🔴🟡🚨📋]/g, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+  if (normalized.length <= 1400) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, 1400).trim()}\n\n詳細は参照元を確認してください。`;
 }
