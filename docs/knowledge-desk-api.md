@@ -37,12 +37,12 @@ KNOWLEDGE_DESK_ONYX_MODE=mock npm run start
 
 ```bash
 KNOWLEDGE_DESK_ONYX_MODE=real \
-ONYX_BASE_URL=http://localhost:3100 \
+ONYX_BASE_URL=http://localhost:3000 \
 ONYX_API_KEY=<personal-access-token-or-api-key> \
 npm run start
 ```
 
-`ONYX_BASE_URL` はブラウザから使っているOnyxのURLを指定する。ローカルDocker環境では `http://localhost:3100` を想定。
+`ONYX_BASE_URL` はブラウザから使っているOnyxのURLを指定する。ローカルDocker環境では `http://localhost:3000` を想定。
 
 `ONYX_API_KEY` はOnyxのPersonal Access TokenまたはAPI Key。Knowledge Deskは以下のHeaderでOnyxへ送る。
 
@@ -54,6 +54,10 @@ Authorization: Bearer <ONYX_API_KEY>
 
 - Chat Write
 - 必要に応じて Search Read
+
+Personal Access Tokenは、Knot / Onyxの画面右下アカウントメニューから `Settings` を開き、`Personal Access Tokens` で作成する。
+デモ用には `Chat Write` と `Search Read` を付けた短期トークンを使う。
+作成後に表示されるtokenは一度しか見られないため、`apps/knowledge-desk-api/.env` の `ONYX_API_KEY` に保存する。
 
 実Onyxでは次のendpointを呼ぶ。
 

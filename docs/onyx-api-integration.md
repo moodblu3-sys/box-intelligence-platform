@@ -81,7 +81,7 @@ Knowledge Deskでは `top_documents` と `tool_calls[].search_docs` を集約し
 
 - Personal Access Token
   - 推奨
-  - User settingsから発行
+  - 画面右下アカウントメニューの `Settings` から発行
   - 必要scope: `Chat Write`
   - 必要に応じて `Search Read`
 - API Key
@@ -95,7 +95,7 @@ Knowledge Deskでは以下の環境変数を使う。
 
 ```bash
 KNOWLEDGE_DESK_ONYX_MODE=real
-ONYX_BASE_URL=http://localhost:3100
+ONYX_BASE_URL=http://localhost:3000
 ONYX_API_KEY=...
 ```
 
@@ -104,6 +104,9 @@ ONYX_API_KEY=...
 ```http
 Authorization: Bearer <ONYX_API_KEY>
 ```
+
+デモ用には、短期のPersonal Access Tokenを作成して `apps/knowledge-desk-api/.env` に保存する。
+tokenは作成時に一度しか表示されないため、保存後は再表示できない。
 
 ## Source識別
 
@@ -133,4 +136,4 @@ Onyxの `source_type` をKnowledge Deskのsource名に変換する。
 - 実Onyx API呼び出しはKnowledge Desk API内に閉じる
 - Onyx Connector、権限同期、indexing処理は変更しない
 - 本番認証設計は今回対象外
-- Jira APIでの本物チケット作成は今回対象外
+- Jiraの本物チケット作成は `JIRA_DRY_RUN=false` の場合のみ行う

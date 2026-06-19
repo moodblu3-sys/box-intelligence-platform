@@ -53,7 +53,7 @@ Real Onyx mode:
 ```bash
 cd apps/knowledge-desk-api
 KNOWLEDGE_DESK_ONYX_MODE=real \
-ONYX_BASE_URL=http://localhost:3100 \
+ONYX_BASE_URL=http://localhost:3000 \
 ONYX_API_KEY=<personal-access-token-or-api-key> \
 npm run start
 ```
@@ -63,7 +63,7 @@ Jira起票を実行する場合:
 ```bash
 cd apps/knowledge-desk-api
 KNOWLEDGE_DESK_ONYX_MODE=real \
-ONYX_BASE_URL=http://localhost:3100 \
+ONYX_BASE_URL=http://localhost:3000 \
 ONYX_API_KEY=<personal-access-token-or-api-key> \
 JIRA_BASE_URL=https://moodblu3.atlassian.net \
 JIRA_EMAIL=moodblu3@gmail.com \
@@ -95,7 +95,7 @@ Real mode smoke:
 
 ```bash
 cd apps/knowledge-desk-api
-ONYX_BASE_URL=http://localhost:3100 \
+ONYX_BASE_URL=http://localhost:3000 \
 ONYX_API_KEY=<personal-access-token-or-api-key> \
 npm run smoke:real
 ```
@@ -128,7 +128,7 @@ npm run smoke:teams:env
 SharePointまで含めた完全版を確認する場合:
 
 ```bash
-ONYX_BASE_URL=http://localhost:3100 \
+ONYX_BASE_URL=http://localhost:3000 \
 ONYX_API_KEY=<personal-access-token-or-api-key> \
 SMOKE_EXPECTED_SOURCES=Box,SharePoint,Jira \
 npm run smoke:real
@@ -137,7 +137,7 @@ npm run smoke:real
 SharePointがまだ使えない場合のfallback:
 
 ```bash
-ONYX_BASE_URL=http://localhost:3100 \
+ONYX_BASE_URL=http://localhost:3000 \
 ONYX_API_KEY=<personal-access-token-or-api-key> \
 SMOKE_EXPECTED_SOURCES=Box,Jira \
 SMOKE_MIN_CONFIDENCE=0.6 \

@@ -64,10 +64,10 @@ Codexがヒアリングし、回答内容をもとに進捗・優先順位・次
 | P0 | 方針 | 5枚スライドの構成を決める | 未着手 | 次に決める |
 | P0 | 資料 | 面接用1枚概要を作る | 未着手 |  |
 | P0 | 資料 | デモ台本を整える | 未着手 |  |
-| P0 | デモ | 通しで動作確認する | 未着手 |  |
+| P0 | デモ | 通しで動作確認する | 未着手 | Onyx起動、PAT投入、real-mode smokeが必要 |
 | P0 | App | 未解決時のJira自動起票を実装する | 実装済み | Project Key: CIH。Issue TypeはTask想定。DRY_RUN smoke確認済み。実Jira起票も確認済み |
 | P1 | UI | Knot表示の粗さを確認する | 未着手 |  |
-| P1 | App | Knowledge Desk APIの見せ方を決める | 未着手 |  |
+| P1 | App | Knowledge Desk APIの見せ方を決める | 進行中 | Mock smokeは成功。real-modeはOnyx起動とPAT投入後に確認 |
 | P1 | Docs | README / 説明文を整える | 未着手 |  |
 
 ## マイルストーン
@@ -89,6 +89,7 @@ Codexがヒアリングし、回答内容をもとに進捗・優先順位・次
 | 高 | デモ当日にConnectorが再Indexされない | 実演が止まる | 事前にIndexed状態を確認し、スクショ・API応答の代替を用意 |
 | 高 | UI表示がOnyxのまま残る | デモの一貫性が落ちる | 表示確認と再ビルド方針を整理 |
 | 高 | Jira自動起票が暴発する | 不要なIssueが作られる | デモ用Projectに限定し、DRY_RUN切替を用意する |
+| 高 | 実Onyx APIキーが未設定 | real-mode smokeができない | OnyxのSettingsでPersonal Access Tokenを作り、`.env` の `ONYX_API_KEY` に保存 |
 | 中 | LLM APIエラー | チャット回答が出ない | Claude/OpenAIのどちらか使える設定を確認 |
 
 ## 次回ヒアリング項目
