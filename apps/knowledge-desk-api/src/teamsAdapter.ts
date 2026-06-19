@@ -1,4 +1,5 @@
 import type { KnowledgeDeskQueryRequest, KnowledgeDeskResponse } from "./types.ts";
+import { knowledgeDeskResponseToTeamsBotMessage } from "./teamsBotActivityAdapter.ts";
 
 export interface TeamsMessageRequest {
   text?: string;
@@ -41,48 +42,11 @@ export function teamsMessageToKnowledgeDeskRequest(
 export function knowledgeDeskResponseToTeamsMessage(
   response: KnowledgeDeskResponse
 ): TeamsMessageResponse {
+  const teamsMessage = knowledgeDeskResponseToTeamsBotMessage(response);
+
   return {
     type: "message",
-    text: [
-      response.answer,
-      "",
-      formatSources(response),
-      formatEscalation(response),
-    ]
-      .filter((part) => part.trim().length > 0)
-      .join("\n"),
+    text: teamsMessage.text,
     knowledgeDesk: response,
   };
-}
-
-function formatSources(response: KnowledgeDeskResponse): string {
-  if (response.sources.length === 0) {
-    return "";
-  }
-
-  return [
-    "参照元:",
-    ...response.sources.map(
-      (source, index) =>
-        `${index + 1}. [${source.source}] ${source.title} ${source.url}`
-    ),
-  ].join("\n");
-}
-
-function formatEscalation(response: KnowledgeDeskResponse): string {
-  if (!response.needsEscalation) {
-    return "";
-  }
-
-  const jiraLine = response.jiraTicketUrl
-    ? `Jira起票: ${response.jiraTicketUrl}`
-    : response.jiraTicket?.dryRun
-      ? "Jira起票: DRY_RUN"
-      : "Jira起票: 未作成";
-
-  return [
-    "エスカレーション:",
-    response.escalationReason ?? "情シス部門で確認が必要です。",
-    jiraLine,
-  ].join("\n");
 }

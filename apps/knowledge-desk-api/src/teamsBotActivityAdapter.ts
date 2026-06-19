@@ -61,19 +61,28 @@ export function teamsBotActivityToKnowledgeDeskRequest(
 export function knowledgeDeskResponseToTeamsBotMessage(
   response: KnowledgeDeskResponse
 ): TeamsBotMessageResponse {
+  const textParts = [formatTeamsAnswer(response), formatSources(response)];
+
+  if (response.needsEscalation) {
+    textParts.push(formatEscalation(response));
+  } else {
+    textParts.push(formatResolutionPrompt());
+  }
+
   return {
     type: "message",
-    text: [
-      formatTeamsAnswer(response),
-      formatSources(response),
-      formatResolutionPrompt(),
-      formatEscalation(response),
-    ]
+    text: textParts
       .filter((part) => part.trim().length > 0)
       .join("\n\n---\n\n"),
     knowledgeDesk: response,
     suggestedActions: response.needsEscalation
-      ? undefined
+      ? [
+          {
+            type: "imBack",
+            title: "起票して",
+            value: "起票して",
+          },
+        ]
       : [
           {
             type: "imBack",
@@ -94,16 +103,16 @@ function formatTeamsAnswer(response: KnowledgeDeskResponse): string {
     return [
       "**Box外部共有の確認手順**",
       "",
-      "まず以下を確認してください。",
+      "まず、招待メール、ログイン中のメールアドレス、フォルダ設定、取引先ドメインの許可状況を確認してください。",
       "",
       "1. 招待先メールアドレスに誤りがないか",
       "2. 相手が招待されたメールアドレスでBoxにログインしているか",
-      "3. 招待メールが迷惑メールに入っていないか",
+      "3. 招待メールが迷惑メールに入っていないか、有効期限が切れていないか",
       "4. フォルダの機密区分が外部共有可能か",
       "5. 共有リンクではなく外部コラボレーター招待が必要なケースか",
       "6. 取引先ドメインが外部共有許可リストに登録済みか",
       "",
-      "**情シスへエスカレーションする条件**",
+      "**情シスへ引き継ぐ条件**",
       "",
       "- 取引先ドメインが未登録",
       "- フォルダが社外秘以上",
@@ -113,7 +122,7 @@ function formatTeamsAnswer(response: KnowledgeDeskResponse): string {
       "",
       "**取引先への案内例**",
       "",
-      "招待先メールアドレス、ログイン中のメールアドレス、招待メールの受信状況をご確認ください。当社側でも、機密区分、共有方法、取引先ドメインの許可状況を確認します。",
+      "招待メールの宛先と、Boxにログインしているメールアドレスが同じか確認してください。迷惑メールフォルダと招待メールの有効期限も確認してください。",
     ].join("\n");
   }
 
@@ -148,7 +157,7 @@ function formatResolutionPrompt(): string {
   return [
     "この回答で解決しましたか？",
     "",
-    "下のボタン、または `解決しました` / `解決しません` と返信してください。",
+    "下のボタン、または「解決しました」「解決しません」と返信してください。",
   ].join("\n");
 }
 
@@ -158,13 +167,13 @@ function formatEscalation(response: KnowledgeDeskResponse): string {
   }
 
   const jiraLine = response.jiraTicketUrl
-    ? `Jira起票: ${response.jiraTicketUrl}`
+    ? `Jiraに起票済み: ${response.jiraTicketUrl}`
     : response.jiraTicket?.dryRun
       ? "Jira起票: DRY_RUN"
-      : "Jira起票: 未作成";
+      : "必要であれば、下のボタン、または「起票して」と返信してください。";
 
   return [
-    "**エスカレーション**",
+    "**情シス確認が必要です**",
     response.escalationReason ?? "情シス部門で確認が必要です。",
     jiraLine,
   ].join("\n");
@@ -180,16 +189,20 @@ function isBoxExternalSharingAnswer(response: KnowledgeDeskResponse): boolean {
 }
 
 function selectDisplaySources(response: KnowledgeDeskResponse) {
-  const firstBySource = new Map<string, (typeof response.sources)[number]>();
-  for (const source of response.sources) {
+  const displayableSources = response.sources.filter(isDisplayableSource);
+  const candidates =
+    displayableSources.length > 0 ? displayableSources : response.sources;
+  const firstBySource = new Map<string, (typeof candidates)[number]>();
+
+  for (const source of candidates) {
     if (!firstBySource.has(source.source)) {
       firstBySource.set(source.source, source);
     }
   }
 
   const selected = [...firstBySource.values()];
-  for (const source of response.sources) {
-    if (selected.length >= 5) {
+  for (const source of candidates) {
+    if (selected.length >= 4) {
       break;
     }
 
@@ -199,6 +212,24 @@ function selectDisplaySources(response: KnowledgeDeskResponse) {
   }
 
   return selected;
+}
+
+function isDisplayableSource(source: KnowledgeDeskResponse["sources"][number]): boolean {
+  const title = source.title.toLowerCase();
+  const isDemoTestDocument =
+    title.includes("mvp") ||
+    title.includes("index test") ||
+    title.includes("codex");
+
+  if (isDemoTestDocument) {
+    return false;
+  }
+
+  if (typeof source.score === "number" && source.score < 0.3) {
+    return false;
+  }
+
+  return true;
 }
 
 function formatSourceTitle(title: string, url: string): string {
@@ -219,7 +250,7 @@ function stripMarkdownTables(text: string): string {
 
 function trimForTeams(text: string): string {
   const normalized = text
-    .replace(/[✅⚠️🔴🟡🚨📋]/g, "")
+    .replace(/[✅⚠️🔴🟡🚨📋📁🔍💡]/g, "")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 

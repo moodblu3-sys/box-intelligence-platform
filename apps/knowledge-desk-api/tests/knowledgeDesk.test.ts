@@ -245,11 +245,77 @@ describe("Knowledge Desk API", () => {
     assert.match(capturedReply ?? "", /Box外部共有の確認手順/);
     assert.match(capturedReply ?? "", /参照元/);
     assert.match(capturedReply ?? "", /この回答で解決しましたか/);
+    assert.match(capturedReply ?? "", /情シスへ引き継ぐ条件/);
     assert.doesNotMatch(capturedReply ?? "", /\|/);
-    assert.doesNotMatch(capturedReply ?? "", /✅|⚠️|🚨/);
+    assert.doesNotMatch(capturedReply ?? "", /✅|⚠️|🚨|📁|🔍|💡/);
+    assert.ok((capturedReply ?? "").length < 1800);
     assert.equal(capturedActions?.length, 2);
     assert.equal(body.knowledgeDesk.needsEscalation, false);
     assert.equal(body.knowledgeDesk.sources.length, 3);
+  });
+
+  test("hides low-relevance test documents from Teams source display", async () => {
+    const app = createKnowledgeDeskApp({
+      onyxClient: {
+        async query() {
+          return {
+            answer:
+              "Box外部共有では、招待メール、取引先ドメイン、フォルダの機密区分を確認します。",
+            results: [
+              {
+                source: "SharePoint",
+                title: "Box外部共有トラブル対応FAQ",
+                url: "https://example.com/sharepoint/box-faq",
+                content: "Box外部共有でアクセスできない場合のFAQです。",
+                score: 1,
+              },
+              {
+                source: "Jira",
+                title: "CIH-1: Box外部共有で取引先ユーザーがアクセスできない",
+                url: "https://example.com/jira/CIH-1",
+                content: "取引先ドメイン未登録によりアクセスできなかった事例です。",
+                score: 0.9,
+              },
+              {
+                source: "Box",
+                title: "Box MVP Public Index Test.txt",
+                url: "https://example.com/box/test",
+                content: "Codex Box MVP public indexing verification.",
+                score: 0.02,
+              },
+              {
+                source: "Jira",
+                title: "CIH-2: 社外秘フォルダでBox共有リンクが利用できない",
+                url: "https://example.com/jira/CIH-2",
+                content: "社外秘フォルダでは共有リンクが無効化される事例です。",
+                score: 0.82,
+              },
+            ],
+          };
+        },
+      },
+    });
+    const response = await app.fetch(
+      new Request("http://localhost/api/knowledge-desk/teams/message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          channelId: "teams",
+          from: {
+            userPrincipalName: "suzuki@nisshin-tech.example",
+          },
+          text: DEMO_QUESTION,
+        }),
+      })
+    );
+
+    assert.equal(response.status, 200);
+    const body = await response.json();
+
+    assert.match(body.text, /Box外部共有の確認手順/);
+    assert.match(body.text, /Box外部共有トラブル対応FAQ/);
+    assert.doesNotMatch(body.text, /Box MVP Public Index Test/);
+    assert.doesNotMatch(body.text, /Codex Box MVP/);
   });
 
   test("creates a Jira issue when a Teams Bot user says unresolved", async () => {
@@ -519,6 +585,8 @@ describe("Knowledge Desk API", () => {
     assert.match(capturedReply ?? "", /十分な根拠/);
     assert.doesNotMatch(capturedReply ?? "", /Box外部共有の確認手順/);
     assert.doesNotMatch(capturedReply ?? "", /主な参照元/);
+    assert.doesNotMatch(capturedReply ?? "", /この回答で解決しましたか/);
+    assert.match(capturedReply ?? "", /起票して/);
   });
 
   test("acknowledges Teams Bot activity immediately in connector reply mode", async () => {
