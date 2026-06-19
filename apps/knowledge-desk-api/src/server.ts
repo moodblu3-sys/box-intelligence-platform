@@ -160,8 +160,22 @@ async function deliverTeamsBotReply(
     );
   }
 
+  const smallTalkReply = getSmallTalkReply(activity);
+  if (smallTalkReply) {
+    const delivery = await teamsBotClient.sendReply({
+      activity,
+      text: smallTalkReply,
+    });
+
+    return {
+      type: "message",
+      text: smallTalkReply,
+      delivery,
+    };
+  }
+
   const request = teamsBotActivityToKnowledgeDeskRequest(activity);
-  const result = await queryKnowledgeDesk(request, onyxClient, jiraClient);
+  const result = await queryKnowledgeDesk(request, onyxClient);
   const message = knowledgeDeskResponseToTeamsBotMessage(result);
   const conversationId = activity.conversation?.id;
   if (conversationId) {
@@ -256,6 +270,9 @@ async function handleResolutionAction(
     activity,
     text,
   });
+  if (conversationId) {
+    teamsConversationState.delete(conversationId);
+  }
 
   return {
     type: "message",
@@ -285,6 +302,31 @@ function getResolutionAction(
   }
 
   return null;
+}
+
+function getSmallTalkReply(activity: TeamsBotActivity): string | null {
+  const text = normalizeActionText(activity.text);
+  const normalized = text.toLowerCase();
+  if (!normalized || normalized.length > 40 || /[?？]/.test(normalized)) {
+    return null;
+  }
+
+  const isSmallTalk = [
+    "ありがとう",
+    "ありがとうございます",
+    "助かった",
+    "了解",
+    "承知",
+    "ok",
+    "okay",
+    "thanks",
+    "thank you",
+    "thx",
+  ].some((phrase) => normalized.includes(phrase));
+
+  return isSmallTalk
+    ? "どういたしまして。必要になったらまた聞いてください。"
+    : null;
 }
 
 function extractActivityValueText(value: unknown): string {

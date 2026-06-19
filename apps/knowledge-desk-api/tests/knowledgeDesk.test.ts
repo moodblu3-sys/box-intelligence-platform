@@ -249,9 +249,11 @@ describe("Knowledge Desk API", () => {
   test("creates a Jira issue when a Teams Bot user says unresolved", async () => {
     const replies: string[] = [];
     let capturedRequester: string | null = null;
+    let jiraCreateIssueCount = 0;
     const app = createKnowledgeDeskApp({
       jiraClient: {
         async createIssue(input) {
+          jiraCreateIssueCount += 1;
           capturedRequester = input.requester;
           assert.match(input.draft.title, /Teamsで未解決/);
           assert.ok(input.draft.labels.includes("teams-unresolved"));
@@ -318,8 +320,27 @@ describe("Knowledge Desk API", () => {
 
     assert.equal(capturedRequester, "user-object-id");
     assert.equal(body.jiraTicket.key, "CIH-789");
+    assert.equal(jiraCreateIssueCount, 1);
     assert.match(replies.at(-1) ?? "", /Jiraに起票しました/);
     assert.match(replies.at(-1) ?? "", /CIH-789/);
+
+    const thanksResponse = await app.fetch(
+      new Request("http://localhost/api/knowledge-desk/teams/bot/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...baseActivity,
+          id: "activity-thanks",
+          text: "ありがとう",
+        }),
+      })
+    );
+    const thanksBody = await thanksResponse.json();
+
+    assert.equal(thanksResponse.status, 200);
+    assert.equal(jiraCreateIssueCount, 1);
+    assert.match(thanksBody.text, /どういたしまして/);
+    assert.doesNotMatch(replies.at(-1) ?? "", /Jiraに起票しました|この回答で解決しましたか/);
   });
 
   test("acknowledges Teams Bot activity immediately in connector reply mode", async () => {
