@@ -21,7 +21,17 @@ import {
   teamsMessageToKnowledgeDeskRequest,
   type TeamsMessageRequest,
 } from "./teamsAdapter.ts";
-import type { KnowledgeDeskQueryRequest } from "./types.ts";
+import type {
+  JiraTicketDraft,
+  KnowledgeDeskQueryRequest,
+  KnowledgeDeskResponse,
+} from "./types.ts";
+
+interface TeamsConversationState {
+  request: KnowledgeDeskQueryRequest;
+  response: KnowledgeDeskResponse;
+  updatedAt: Date;
+}
 
 interface KnowledgeDeskAppOptions {
   onyxClient?: OnyxClient;
@@ -34,6 +44,7 @@ export function createKnowledgeDeskApp(options: KnowledgeDeskAppOptions = {}) {
   const jiraClient = options.jiraClient ?? createJiraClientFromEnv();
   const teamsBotClient =
     options.teamsBotClient ?? createTeamsBotClientFromEnv();
+  const teamsConversationState = new Map<string, TeamsConversationState>();
 
   return {
     async fetch(request: Request): Promise<Response> {
@@ -78,7 +89,8 @@ export function createKnowledgeDeskApp(options: KnowledgeDeskAppOptions = {}) {
               activity,
               onyxClient,
               jiraClient,
-              teamsBotClient
+              teamsBotClient,
+              teamsConversationState
             ).catch((error: unknown) => {
               console.error("Teams Bot async reply failed", error);
             });
@@ -94,7 +106,8 @@ export function createKnowledgeDeskApp(options: KnowledgeDeskAppOptions = {}) {
               activity,
               onyxClient,
               jiraClient,
-              teamsBotClient
+              teamsBotClient,
+              teamsConversationState
             )
           );
         }
@@ -128,22 +141,41 @@ async function deliverTeamsBotReply(
   activity: TeamsBotActivity,
   onyxClient: OnyxClient,
   jiraClient: JiraClient,
-  teamsBotClient: TeamsBotClient
+  teamsBotClient: TeamsBotClient,
+  teamsConversationState: Map<string, TeamsConversationState>
 ) {
   console.info("Teams Bot message received", {
     activityId: activity.id,
     conversationId: activity.conversation?.id,
     channelId: activity.channelId,
   });
-  const result = await queryKnowledgeDesk(
-    teamsBotActivityToKnowledgeDeskRequest(activity),
-    onyxClient,
-    jiraClient
-  );
+  const resolutionAction = getResolutionAction(activity);
+  if (resolutionAction) {
+    return handleResolutionAction(
+      resolutionAction,
+      activity,
+      jiraClient,
+      teamsBotClient,
+      teamsConversationState
+    );
+  }
+
+  const request = teamsBotActivityToKnowledgeDeskRequest(activity);
+  const result = await queryKnowledgeDesk(request, onyxClient, jiraClient);
   const message = knowledgeDeskResponseToTeamsBotMessage(result);
+  const conversationId = activity.conversation?.id;
+  if (conversationId) {
+    teamsConversationState.set(conversationId, {
+      request,
+      response: result,
+      updatedAt: new Date(),
+    });
+  }
+
   const delivery = await teamsBotClient.sendReply({
     activity,
     text: message.text,
+    suggestedActions: message.suggestedActions,
   });
 
   console.info("Teams Bot reply delivery completed", {
@@ -155,6 +187,164 @@ async function deliverTeamsBotReply(
   return {
     ...message,
     delivery,
+  };
+}
+
+async function handleResolutionAction(
+  resolutionAction: "resolved" | "unresolved",
+  activity: TeamsBotActivity,
+  jiraClient: JiraClient,
+  teamsBotClient: TeamsBotClient,
+  teamsConversationState: Map<string, TeamsConversationState>
+) {
+  const conversationId = activity.conversation?.id;
+  const state = conversationId
+    ? teamsConversationState.get(conversationId)
+    : undefined;
+
+  if (resolutionAction === "resolved") {
+    if (conversationId) {
+      teamsConversationState.delete(conversationId);
+    }
+
+    const delivery = await teamsBotClient.sendReply({
+      activity,
+      text: "解決できてよかったです。必要になったらまた聞いてください。",
+    });
+
+    return {
+      type: "message",
+      text: "解決できてよかったです。必要になったらまた聞いてください。",
+      delivery,
+    };
+  }
+
+  if (!state) {
+    const text = [
+      "直前の問い合わせ内容が見つからなかったため、Jira起票に必要な情報を特定できませんでした。",
+      "もう一度問い合わせ内容を送ってから、`解決しません` と返信してください。",
+    ].join("\n");
+    const delivery = await teamsBotClient.sendReply({
+      activity,
+      text,
+    });
+
+    return {
+      type: "message",
+      text,
+      delivery,
+    };
+  }
+
+  const draft = buildUnresolvedJiraTicketDraft(state.request, state.response);
+  const jiraTicket = await jiraClient.createIssue({
+    draft,
+    requester: state.request.user,
+    question: state.request.question,
+  });
+  const ticketLine = jiraTicket.url
+    ? `Jiraに起票しました: ${jiraTicket.url}`
+    : jiraTicket.dryRun
+      ? "Jira起票はDRY_RUNです。デモ設定を確認してください。"
+      : `Jira起票に失敗しました: ${jiraTicket.error ?? "unknown error"}`;
+  const text = [
+    "承知しました。情シスで確認できるように問い合わせを起票しました。",
+    "",
+    ticketLine,
+  ].join("\n");
+  const delivery = await teamsBotClient.sendReply({
+    activity,
+    text,
+  });
+
+  return {
+    type: "message",
+    text,
+    jiraTicket,
+    delivery,
+  };
+}
+
+function getResolutionAction(
+  activity: TeamsBotActivity
+): "resolved" | "unresolved" | null {
+  const text = normalizeActionText(activity.text);
+  const value = normalizeActionText(extractActivityValueText(activity.value));
+  const actionText = `${text} ${value}`.trim();
+
+  if (
+    actionText.includes("解決しません") ||
+    actionText.includes("解決していません") ||
+    actionText.includes("未解決")
+  ) {
+    return "unresolved";
+  }
+
+  if (actionText.includes("解決しました") || actionText.includes("解決済み")) {
+    return "resolved";
+  }
+
+  return null;
+}
+
+function extractActivityValueText(value: unknown): string {
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (!value || typeof value !== "object") {
+    return "";
+  }
+
+  const record = value as Record<string, unknown>;
+  return [record.action, record.value, record.text, record.command]
+    .filter((item): item is string => typeof item === "string")
+    .join(" ");
+}
+
+function normalizeActionText(text: string): string {
+  return text
+    .replace(/<at>.*?<\/at>/g, "")
+    .replace(/<[^>]+>/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function buildUnresolvedJiraTicketDraft(
+  request: KnowledgeDeskQueryRequest,
+  response: KnowledgeDeskResponse
+): JiraTicketDraft {
+  return {
+    title: "Box外部共有に関する問い合わせ: Teamsで未解決",
+    description: [
+      `問い合わせ元: ${request.user}`,
+      `チャネル: ${request.channel}`,
+      "",
+      "問い合わせ内容:",
+      request.question,
+      "",
+      "Bot回答後の利用者フィードバック:",
+      "解決しません",
+      "",
+      "Bot回答の要約:",
+      response.answer.slice(0, 1500),
+      "",
+      "参照元:",
+      ...response.sources
+        .slice(0, 8)
+        .map((source) => `- ${source.source}: ${source.title} ${source.url}`),
+      "",
+      "情シスで確認してほしいこと:",
+      "- 対象BoxフォルダのURL",
+      "- 招待先メールアドレス",
+      "- 取引先ドメイン",
+      "- フォルダの機密区分",
+      "- 共有リンク利用有無",
+      "- 表示されているエラーメッセージ",
+    ].join("\n"),
+    priority: "Medium",
+    labels: ["box", "external-sharing", "knowledge-desk", "teams-unresolved"],
+    assigneeTeam: "Corporate IT",
   };
 }
 

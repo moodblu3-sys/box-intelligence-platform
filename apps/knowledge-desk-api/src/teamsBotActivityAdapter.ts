@@ -5,6 +5,7 @@ export interface TeamsBotActivity {
   id?: string;
   text?: string;
   textFormat?: string;
+  value?: unknown;
   serviceUrl?: string;
   channelId?: string;
   conversation?: {
@@ -26,6 +27,13 @@ export interface TeamsBotMessageResponse {
   type: "message";
   text: string;
   knowledgeDesk: KnowledgeDeskResponse;
+  suggestedActions?: TeamsBotSuggestedAction[];
+}
+
+export interface TeamsBotSuggestedAction {
+  type: "imBack";
+  title: string;
+  value: string;
 }
 
 export function isTeamsBotMessageActivity(activity: TeamsBotActivity): boolean {
@@ -59,11 +67,27 @@ export function knowledgeDeskResponseToTeamsBotMessage(
       formatTeamsAnswer(response),
       "",
       formatSources(response),
+      "",
+      formatResolutionPrompt(),
       formatEscalation(response),
     ]
       .filter((part) => part.trim().length > 0)
       .join("\n"),
     knowledgeDesk: response,
+    suggestedActions: response.needsEscalation
+      ? undefined
+      : [
+          {
+            type: "imBack",
+            title: "解決しました",
+            value: "解決しました",
+          },
+          {
+            type: "imBack",
+            title: "解決しません",
+            value: "解決しません",
+          },
+        ],
   };
 }
 
@@ -113,11 +137,18 @@ function formatSources(response: KnowledgeDeskResponse): string {
   }
 
   return [
-    "**参照元**",
-    ...response.sources.map(
+    "**主な参照元**",
+    ...selectDisplaySources(response).map(
       (source, index) =>
-        `${index + 1}. ${source.source}: ${source.title}`
+        `${index + 1}. ${source.source}: ${formatSourceTitle(source.title, source.url)}`
     ),
+  ].join("\n");
+}
+
+function formatResolutionPrompt(): string {
+  return [
+    "**この回答で解決しましたか？**",
+    "下のボタン、または `解決しました` / `解決しません` と返信してください。",
   ].join("\n");
 }
 
@@ -146,6 +177,36 @@ function isBoxExternalSharingAnswer(response: KnowledgeDeskResponse): boolean {
   ].join(" ");
 
   return text.includes("Box") && text.includes("外部共有");
+}
+
+function selectDisplaySources(response: KnowledgeDeskResponse) {
+  const firstBySource = new Map<string, (typeof response.sources)[number]>();
+  for (const source of response.sources) {
+    if (!firstBySource.has(source.source)) {
+      firstBySource.set(source.source, source);
+    }
+  }
+
+  const selected = [...firstBySource.values()];
+  for (const source of response.sources) {
+    if (selected.length >= 5) {
+      break;
+    }
+
+    if (!selected.includes(source)) {
+      selected.push(source);
+    }
+  }
+
+  return selected;
+}
+
+function formatSourceTitle(title: string, url: string): string {
+  if (/^https?:\/\//.test(url)) {
+    return `[${title}](${url})`;
+  }
+
+  return title;
 }
 
 function stripMarkdownTables(text: string): string {

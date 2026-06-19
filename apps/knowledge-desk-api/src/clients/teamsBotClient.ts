@@ -1,4 +1,7 @@
-import type { TeamsBotActivity } from "../teamsBotActivityAdapter.ts";
+import type {
+  TeamsBotActivity,
+  TeamsBotSuggestedAction,
+} from "../teamsBotActivityAdapter.ts";
 
 export interface TeamsBotClient {
   sendReply(input: TeamsBotReplyInput): Promise<TeamsBotReplyResult>;
@@ -7,6 +10,7 @@ export interface TeamsBotClient {
 export interface TeamsBotReplyInput {
   activity: TeamsBotActivity;
   text: string;
+  suggestedActions?: TeamsBotSuggestedAction[];
 }
 
 export interface TeamsBotReplyResult {
@@ -88,6 +92,11 @@ export class BotFrameworkTeamsBotClient implements TeamsBotClient {
           conversation: input.activity.conversation,
           replyToId: activityId,
           text: input.text,
+          suggestedActions: input.suggestedActions
+            ? {
+                actions: input.suggestedActions,
+              }
+            : undefined,
         }),
       }
     );

@@ -195,10 +195,12 @@ describe("Knowledge Desk API", () => {
 
   test("accepts a Teams Bot Framework activity and sends a reply", async () => {
     let capturedReply: string | null = null;
+    let capturedActions: unknown[] | undefined;
     const app = createKnowledgeDeskApp({
       teamsBotClient: {
         async sendReply(input) {
           capturedReply = input.text;
+          capturedActions = input.suggestedActions;
 
           return {
             sent: true,
@@ -236,10 +238,88 @@ describe("Knowledge Desk API", () => {
     assert.equal(body.delivery.sent, true);
     assert.match(capturedReply ?? "", /Box外部共有の確認手順/);
     assert.match(capturedReply ?? "", /参照元/);
+    assert.match(capturedReply ?? "", /この回答で解決しましたか/);
     assert.doesNotMatch(capturedReply ?? "", /\|/);
     assert.doesNotMatch(capturedReply ?? "", /✅|⚠️|🚨/);
+    assert.equal(capturedActions?.length, 2);
     assert.equal(body.knowledgeDesk.needsEscalation, false);
     assert.equal(body.knowledgeDesk.sources.length, 3);
+  });
+
+  test("creates a Jira issue when a Teams Bot user says unresolved", async () => {
+    const replies: string[] = [];
+    let capturedRequester: string | null = null;
+    const app = createKnowledgeDeskApp({
+      jiraClient: {
+        async createIssue(input) {
+          capturedRequester = input.requester;
+          assert.match(input.draft.title, /Teamsで未解決/);
+          assert.ok(input.draft.labels.includes("teams-unresolved"));
+
+          return {
+            created: true,
+            dryRun: false,
+            key: "CIH-789",
+            url: "https://moodblu3.atlassian.net/browse/CIH-789",
+            error: null,
+          };
+        },
+      },
+      teamsBotClient: {
+        async sendReply(input) {
+          replies.push(input.text);
+
+          return {
+            sent: true,
+            status: 201,
+            error: null,
+          };
+        },
+      },
+    });
+    const baseActivity = {
+      type: "message",
+      serviceUrl: "https://smba.trafficmanager.net/jp/",
+      channelId: "msteams",
+      conversation: {
+        id: "conversation-unresolved",
+      },
+      from: {
+        aadObjectId: "user-object-id",
+        name: "鈴木",
+      },
+    };
+
+    await app.fetch(
+      new Request("http://localhost/api/knowledge-desk/teams/bot/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...baseActivity,
+          id: "activity-question",
+          text: DEMO_QUESTION,
+        }),
+      })
+    );
+    const response = await app.fetch(
+      new Request("http://localhost/api/knowledge-desk/teams/bot/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...baseActivity,
+          id: "activity-unresolved",
+          text: "解決しません",
+        }),
+      })
+    );
+
+    assert.equal(response.status, 200);
+    const body = await response.json();
+
+    assert.equal(capturedRequester, "user-object-id");
+    assert.equal(body.jiraTicket.key, "CIH-789");
+    assert.match(replies.at(-1) ?? "", /Jiraに起票しました/);
+    assert.match(replies.at(-1) ?? "", /CIH-789/);
   });
 
   test("acknowledges Teams Bot activity immediately in connector reply mode", async () => {
