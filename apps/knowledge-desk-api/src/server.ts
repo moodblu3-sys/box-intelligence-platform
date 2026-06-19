@@ -2,10 +2,20 @@ import {
   createJiraClientFromEnv,
   type JiraClient,
 } from "./clients/jiraClient.ts";
+import {
+  createTeamsBotClientFromEnv,
+  type TeamsBotClient,
+} from "./clients/teamsBotClient.ts";
 import { MockOnyxClient } from "./clients/mockOnyxClient.ts";
 import type { OnyxClient } from "./clients/onyxClient.ts";
 import { createRealOnyxClientFromEnv } from "./clients/realOnyxClient.ts";
 import { KnowledgeDeskValidationError, queryKnowledgeDesk } from "./queryService.ts";
+import {
+  isTeamsBotMessageActivity,
+  knowledgeDeskResponseToTeamsBotMessage,
+  teamsBotActivityToKnowledgeDeskRequest,
+  type TeamsBotActivity,
+} from "./teamsBotActivityAdapter.ts";
 import {
   knowledgeDeskResponseToTeamsMessage,
   teamsMessageToKnowledgeDeskRequest,
@@ -16,11 +26,14 @@ import type { KnowledgeDeskQueryRequest } from "./types.ts";
 interface KnowledgeDeskAppOptions {
   onyxClient?: OnyxClient;
   jiraClient?: JiraClient;
+  teamsBotClient?: TeamsBotClient;
 }
 
 export function createKnowledgeDeskApp(options: KnowledgeDeskAppOptions = {}) {
   const onyxClient = options.onyxClient ?? createOnyxClientFromEnv();
   const jiraClient = options.jiraClient ?? createJiraClientFromEnv();
+  const teamsBotClient =
+    options.teamsBotClient ?? createTeamsBotClientFromEnv();
 
   return {
     async fetch(request: Request): Promise<Response> {
@@ -36,7 +49,8 @@ export function createKnowledgeDeskApp(options: KnowledgeDeskAppOptions = {}) {
 
       if (
         url.pathname !== "/api/knowledge-desk/query" &&
-        url.pathname !== "/api/knowledge-desk/teams/message"
+        url.pathname !== "/api/knowledge-desk/teams/message" &&
+        url.pathname !== "/api/knowledge-desk/teams/bot/messages"
       ) {
         return jsonResponse({ error: "Not found" }, 404);
       }
@@ -47,6 +61,35 @@ export function createKnowledgeDeskApp(options: KnowledgeDeskAppOptions = {}) {
 
       try {
         const requestBody = await request.json();
+        if (url.pathname === "/api/knowledge-desk/teams/bot/messages") {
+          const activity = requestBody as TeamsBotActivity;
+
+          if (!isTeamsBotMessageActivity(activity)) {
+            return jsonResponse({
+              status: "ignored",
+              reason: `Unsupported Teams Bot activity type: ${
+                activity.type ?? "unknown"
+              }`,
+            });
+          }
+
+          const result = await queryKnowledgeDesk(
+            teamsBotActivityToKnowledgeDeskRequest(activity),
+            onyxClient,
+            jiraClient
+          );
+          const message = knowledgeDeskResponseToTeamsBotMessage(result);
+          const delivery = await teamsBotClient.sendReply({
+            activity,
+            text: message.text,
+          });
+
+          return jsonResponse({
+            ...message,
+            delivery,
+          });
+        }
+
         const body =
           url.pathname === "/api/knowledge-desk/teams/message"
             ? teamsMessageToKnowledgeDeskRequest(requestBody as TeamsMessageRequest)

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { AtlassianJiraClient } from "../src/clients/jiraClient.ts";
 import { RealOnyxClient } from "../src/clients/realOnyxClient.ts";
+import { BotFrameworkTeamsBotClient } from "../src/clients/teamsBotClient.ts";
 import { normalizeKnowledgeDeskResponse } from "../src/normalizer.ts";
 import { createKnowledgeDeskApp } from "../src/server.ts";
 import type { KnowledgeDeskQueryRequest } from "../src/types.ts";
@@ -190,6 +191,105 @@ describe("Knowledge Desk API", () => {
     assert.match(body.text, /参照元/);
     assert.equal(body.knowledgeDesk.needsEscalation, false);
     assert.equal(body.knowledgeDesk.sources.length, 3);
+  });
+
+  test("accepts a Teams Bot Framework activity and sends a reply", async () => {
+    let capturedReply: string | null = null;
+    const app = createKnowledgeDeskApp({
+      teamsBotClient: {
+        async sendReply(input) {
+          capturedReply = input.text;
+
+          return {
+            sent: true,
+            status: 201,
+            error: null,
+          };
+        },
+      },
+    });
+    const response = await app.fetch(
+      new Request("http://localhost/api/knowledge-desk/teams/bot/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "message",
+          id: "activity-1",
+          serviceUrl: "https://smba.trafficmanager.net/jp/",
+          channelId: "msteams",
+          conversation: {
+            id: "conversation-1",
+          },
+          from: {
+            aadObjectId: "user-object-id",
+            name: "鈴木",
+          },
+          text: `<at>Knot</at> ${DEMO_QUESTION}`,
+        }),
+      })
+    );
+
+    assert.equal(response.status, 200);
+    const body = await response.json();
+
+    assert.equal(body.type, "message");
+    assert.equal(body.delivery.sent, true);
+    assert.match(capturedReply ?? "", /参照元/);
+    assert.equal(body.knowledgeDesk.needsEscalation, false);
+    assert.equal(body.knowledgeDesk.sources.length, 3);
+  });
+
+  test("BotFrameworkTeamsBotClient posts a reply through the Bot Connector API", async () => {
+    const requests: Array<{ url: string; body: string }> = [];
+    const fetchFn = async (
+      input: string | URL | Request,
+      init?: RequestInit
+    ): Promise<Response> => {
+      requests.push({
+        url: input.toString(),
+        body: init?.body?.toString() ?? "",
+      });
+
+      if (input.toString().includes("/oauth2/v2.0/token")) {
+        return new Response(JSON.stringify({ access_token: "bot-token" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ id: "reply-1" }), {
+        status: 201,
+        headers: { "Content-Type": "application/json" },
+      });
+    };
+    const client = new BotFrameworkTeamsBotClient({
+      appId: "app-id",
+      appPassword: "app-password",
+      tenantId: "tenant-id",
+      fetchFn,
+    });
+
+    const result = await client.sendReply({
+      activity: {
+        id: "activity-1",
+        serviceUrl: "https://smba.trafficmanager.net/jp/",
+        conversation: {
+          id: "conversation-1",
+        },
+      },
+      text: "回答本文",
+    });
+
+    assert.equal(result.sent, true);
+    assert.equal(
+      requests[0]?.url,
+      "https://login.microsoftonline.com/tenant-id/oauth2/v2.0/token"
+    );
+    assert.equal(
+      requests[1]?.url,
+      "https://smba.trafficmanager.net/jp/v3/conversations/conversation-1/activities/activity-1"
+    );
+    assert.match(requests[1]?.body ?? "", /回答本文/);
   });
 
   test("normalizer returns source snippets and scores", () => {

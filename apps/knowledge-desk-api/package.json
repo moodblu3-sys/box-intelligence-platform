@@ -12,6 +12,8 @@
     "smoke:jira:env": "node --env-file=.env --experimental-strip-types scripts/smoke-jira.ts",
     "smoke:teams": "node --experimental-strip-types scripts/smoke-teams.ts",
     "smoke:teams:env": "node --env-file=.env --experimental-strip-types scripts/smoke-teams.ts",
+    "smoke:teams-bot": "node --experimental-strip-types scripts/smoke-teams-bot.ts",
+    "smoke:teams-bot:env": "node --env-file=.env --experimental-strip-types scripts/smoke-teams-bot.ts",
     "test": "node --experimental-strip-types --test tests/*.test.ts"
   }
 }

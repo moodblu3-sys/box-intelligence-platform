@@ -115,6 +115,51 @@ Response:
 }
 ```
 
+### POST /api/knowledge-desk/teams/bot/messages
+
+Teams Bot / Azure Bot ServiceからBot Framework Activityを受け取るendpoint。
+
+`TEAMS_BOT_REPLY_MODE=http` の場合はHTTP responseで確認する。`TEAMS_BOT_REPLY_MODE=connector` の場合はBot Connector API経由でTeamsへ返信する。
+
+Request:
+
+```json
+{
+  "type": "message",
+  "id": "activity-1",
+  "serviceUrl": "https://smba.trafficmanager.net/jp/",
+  "channelId": "msteams",
+  "conversation": {
+    "id": "conversation-1"
+  },
+  "from": {
+    "aadObjectId": "user-object-id",
+    "name": "鈴木"
+  },
+  "text": "<at>Knot</at> 取引先にBoxフォルダを共有したいのですが、相手からアクセスできないと言われています。外部共有の条件と、確認すべき手順を教えてください。"
+}
+```
+
+Response:
+
+```json
+{
+  "type": "message",
+  "text": "...Teamsに返す本文...",
+  "knowledgeDesk": {
+    "answer": "...",
+    "sources": [],
+    "confidence": 0.86,
+    "needsEscalation": false
+  },
+  "delivery": {
+    "sent": false,
+    "status": null,
+    "error": null
+  }
+}
+```
+
 | Field | Type | Required | Description |
 |---|---|---:|---|
 | user | string | yes | 問い合わせユーザー |
