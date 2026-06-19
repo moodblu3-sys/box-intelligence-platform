@@ -80,6 +80,13 @@ export class BotFrameworkTeamsBotClient implements TeamsBotClient {
         },
         body: JSON.stringify({
           type: "message",
+          from: input.activity.recipient ?? {
+            id: this.appId,
+            name: "Knot",
+          },
+          recipient: input.activity.from,
+          conversation: input.activity.conversation,
+          replyToId: activityId,
           text: input.text,
         }),
       }

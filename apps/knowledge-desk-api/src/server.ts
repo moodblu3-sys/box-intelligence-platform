@@ -73,21 +73,30 @@ export function createKnowledgeDeskApp(options: KnowledgeDeskAppOptions = {}) {
             });
           }
 
-          const result = await queryKnowledgeDesk(
-            teamsBotActivityToKnowledgeDeskRequest(activity),
-            onyxClient,
-            jiraClient
-          );
-          const message = knowledgeDeskResponseToTeamsBotMessage(result);
-          const delivery = await teamsBotClient.sendReply({
-            activity,
-            text: message.text,
-          });
+          if (shouldDeliverTeamsBotReplyAsync()) {
+            void deliverTeamsBotReply(
+              activity,
+              onyxClient,
+              jiraClient,
+              teamsBotClient
+            ).catch((error: unknown) => {
+              console.error("Teams Bot async reply failed", error);
+            });
 
-          return jsonResponse({
-            ...message,
-            delivery,
-          });
+            return jsonResponse({
+              status: "accepted",
+              delivery: "async",
+            });
+          }
+
+          return jsonResponse(
+            await deliverTeamsBotReply(
+              activity,
+              onyxClient,
+              jiraClient,
+              teamsBotClient
+            )
+          );
         }
 
         const body =
@@ -115,6 +124,40 @@ export function createKnowledgeDeskApp(options: KnowledgeDeskAppOptions = {}) {
   };
 }
 
+async function deliverTeamsBotReply(
+  activity: TeamsBotActivity,
+  onyxClient: OnyxClient,
+  jiraClient: JiraClient,
+  teamsBotClient: TeamsBotClient
+) {
+  console.info("Teams Bot message received", {
+    activityId: activity.id,
+    conversationId: activity.conversation?.id,
+    channelId: activity.channelId,
+  });
+  const result = await queryKnowledgeDesk(
+    teamsBotActivityToKnowledgeDeskRequest(activity),
+    onyxClient,
+    jiraClient
+  );
+  const message = knowledgeDeskResponseToTeamsBotMessage(result);
+  const delivery = await teamsBotClient.sendReply({
+    activity,
+    text: message.text,
+  });
+
+  console.info("Teams Bot reply delivery completed", {
+    sent: delivery.sent,
+    status: delivery.status,
+    error: delivery.error,
+  });
+
+  return {
+    ...message,
+    delivery,
+  };
+}
+
 function createOnyxClientFromEnv(): OnyxClient {
   const mode = process.env.KNOWLEDGE_DESK_ONYX_MODE ?? "mock";
 
@@ -129,6 +172,10 @@ function createOnyxClientFromEnv(): OnyxClient {
   throw new Error(
     `Unsupported KNOWLEDGE_DESK_ONYX_MODE: ${mode}. Use "mock" or "real".`
   );
+}
+
+function shouldDeliverTeamsBotReplyAsync(): boolean {
+  return (process.env.TEAMS_BOT_REPLY_MODE ?? "http").toLowerCase() === "connector";
 }
 
 function jsonResponse(body: unknown, status = 200): Response {

@@ -35,20 +35,31 @@ async function main() {
     throw new Error(`Knowledge Desk Teams Bot endpoint returned ${response.status}: ${rawBody}`);
   }
 
-  const body = JSON.parse(rawBody) as {
-    type: string;
-    delivery: {
-      sent: boolean;
-      error: string | null;
-    };
-    knowledgeDesk: {
-      confidence: number;
-      needsEscalation: boolean;
-      sources: Array<{ source: string; title: string }>;
-    };
-  };
+  const body = JSON.parse(rawBody) as
+    | {
+        status: "accepted";
+        delivery: "async";
+      }
+    | {
+        type: string;
+        delivery: {
+          sent: boolean;
+          error: string | null;
+        };
+        knowledgeDesk: {
+          confidence: number;
+          needsEscalation: boolean;
+          sources: Array<{ source: string; title: string }>;
+        };
+      };
 
-  if (body.type !== "message") {
+  if ("status" in body && body.status === "accepted") {
+    console.log("Knowledge Desk Teams Bot smoke accepted for async delivery.");
+    console.log(`delivery=${body.delivery}`);
+    return;
+  }
+
+  if (!("type" in body) || body.type !== "message") {
     throw new Error(`Expected Teams Bot message response, got ${body.type}.`);
   }
 

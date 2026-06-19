@@ -239,6 +239,64 @@ describe("Knowledge Desk API", () => {
     assert.equal(body.knowledgeDesk.sources.length, 3);
   });
 
+  test("acknowledges Teams Bot activity immediately in connector reply mode", async () => {
+    const previousReplyMode = process.env.TEAMS_BOT_REPLY_MODE;
+    process.env.TEAMS_BOT_REPLY_MODE = "connector";
+    let resolveDelivered: () => void = () => {};
+    const delivered = new Promise<void>((resolve) => {
+      resolveDelivered = resolve;
+    });
+    const app = createKnowledgeDeskApp({
+      teamsBotClient: {
+        async sendReply() {
+          resolveDelivered();
+
+          return {
+            sent: true,
+            status: 201,
+            error: null,
+          };
+        },
+      },
+    });
+
+    try {
+      const response = await app.fetch(
+        new Request("http://localhost/api/knowledge-desk/teams/bot/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "message",
+            id: "activity-async",
+            serviceUrl: "https://smba.trafficmanager.net/jp/",
+            channelId: "msteams",
+            conversation: {
+              id: "conversation-async",
+            },
+            from: {
+              aadObjectId: "user-object-id",
+              name: "鈴木",
+            },
+            text: DEMO_QUESTION,
+          }),
+        })
+      );
+
+      assert.equal(response.status, 200);
+      const body = await response.json();
+
+      assert.equal(body.status, "accepted");
+      assert.equal(body.delivery, "async");
+      await delivered;
+    } finally {
+      if (previousReplyMode === undefined) {
+        delete process.env.TEAMS_BOT_REPLY_MODE;
+      } else {
+        process.env.TEAMS_BOT_REPLY_MODE = previousReplyMode;
+      }
+    }
+  });
+
   test("BotFrameworkTeamsBotClient posts a reply through the Bot Connector API", async () => {
     const requests: Array<{ url: string; body: string }> = [];
     const fetchFn = async (
@@ -273,6 +331,14 @@ describe("Knowledge Desk API", () => {
       activity: {
         id: "activity-1",
         serviceUrl: "https://smba.trafficmanager.net/jp/",
+        from: {
+          id: "user-id",
+          name: "鈴木",
+        },
+        recipient: {
+          id: "bot-id",
+          name: "Knot",
+        },
         conversation: {
           id: "conversation-1",
         },
@@ -289,7 +355,16 @@ describe("Knowledge Desk API", () => {
       requests[1]?.url,
       "https://smba.trafficmanager.net/jp/v3/conversations/conversation-1/activities/activity-1"
     );
-    assert.match(requests[1]?.body ?? "", /回答本文/);
+    const replyBody = JSON.parse(requests[1]?.body ?? "{}") as {
+      from?: { id?: string };
+      recipient?: { id?: string };
+      replyToId?: string;
+      text?: string;
+    };
+    assert.equal(replyBody.from?.id, "bot-id");
+    assert.equal(replyBody.recipient?.id, "user-id");
+    assert.equal(replyBody.replyToId, "activity-1");
+    assert.equal(replyBody.text, "回答本文");
   });
 
   test("normalizer returns source snippets and scores", () => {
