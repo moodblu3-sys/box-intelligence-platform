@@ -161,11 +161,15 @@ describe("Knowledge Desk API", () => {
     const fields = capturedRequest?.body.fields as {
       project: { key: string };
       issuetype: { name: string };
+      description: unknown;
       labels: string[];
     };
     assert.equal(fields.project.key, "CIH");
     assert.equal(fields.issuetype.name, "Task");
     assert.deepEqual(fields.labels, ["knowledge-desk", "needs-triage"]);
+    const descriptionText = extractAtlassianDocumentText(fields.description).trim();
+    assert.equal(descriptionText, "問い合わせ内容です。");
+    assert.doesNotMatch(descriptionText, /Requester:|Original question:|Assignee team:/);
     assert.equal(result.created, true);
     assert.equal(result.url, "https://moodblu3.atlassian.net/browse/CIH-456");
   });
@@ -251,13 +255,15 @@ describe("Knowledge Desk API", () => {
   test("creates a Jira issue when a Teams Bot user says unresolved", async () => {
     const replies: string[] = [];
     let capturedRequester: string | null = null;
+    let capturedDraftDescription: string | null = null;
     let jiraCreateIssueCount = 0;
     const app = createKnowledgeDeskApp({
       jiraClient: {
         async createIssue(input) {
           jiraCreateIssueCount += 1;
           capturedRequester = input.requester;
-          assert.match(input.draft.title, /Teamsで未解決/);
+          capturedDraftDescription = input.draft.description;
+          assert.match(input.draft.title, /Box外部共有/);
           assert.ok(input.draft.labels.includes("teams-unresolved"));
 
           return {
@@ -320,9 +326,14 @@ describe("Knowledge Desk API", () => {
     assert.equal(response.status, 200);
     const body = await response.json();
 
-    assert.equal(capturedRequester, "user-object-id");
+    assert.equal(capturedRequester, "鈴木");
     assert.equal(body.jiraTicket.key, "CIH-789");
     assert.equal(jiraCreateIssueCount, 1);
+    assert.match(capturedDraftDescription ?? "", /受付概要/);
+    assert.match(capturedDraftDescription ?? "", /問い合わせ元: 鈴木/);
+    assert.match(capturedDraftDescription ?? "", /Bot回答サマリー/);
+    assert.match(capturedDraftDescription ?? "", /主な参照元/);
+    assert.doesNotMatch(capturedDraftDescription ?? "", /\|---|\| # |Requester:|Original question:/);
     assert.match(replies.at(-1) ?? "", /Jiraに起票しました/);
     assert.match(replies.at(-1) ?? "", /CIH-789/);
 
@@ -751,3 +762,24 @@ describe("Knowledge Desk API", () => {
     assert.equal(result.results[0]?.score, 0.93);
   });
 });
+
+function extractAtlassianDocumentText(value: unknown): string {
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => extractAtlassianDocumentText(item)).join("");
+  }
+
+  if (!value || typeof value !== "object") {
+    return "";
+  }
+
+  const record = value as Record<string, unknown>;
+  const text = typeof record.text === "string" ? record.text : "";
+  const childText = extractAtlassianDocumentText(record.content);
+  const separator = record.type === "paragraph" && childText ? "\n" : "";
+
+  return `${text}${childText}${separator}`;
+}

@@ -102,11 +102,29 @@ function filterRelevantSources(
 
   return sources.filter((source) => {
     if (queryServiceTerms.length > 0) {
-      return sourceMatchesQueryTerms(source, queryServiceTerms);
+      return (
+        sourceMatchesQueryTerms(source, queryServiceTerms) &&
+        sourceHasEnoughMatchedTerms(source, queryTerms, queryServiceTerms)
+      );
     }
 
     return sourceMatchesQueryTerms(source, queryTerms);
   });
+}
+
+function sourceHasEnoughMatchedTerms(
+  source: SourceReference,
+  queryTerms: string[],
+  queryServiceTerms: string[]
+): boolean {
+  const matchedTerms = queryTerms.filter((term) =>
+    sourceMatchesQueryTerms(source, [term])
+  );
+  const requiresSpecificContext = queryServiceTerms.some(
+    (term) => normalizeText(term) === "box"
+  );
+
+  return !requiresSpecificContext || matchedTerms.length >= 2;
 }
 
 function sourceMatchesQueryTerms(
@@ -114,7 +132,7 @@ function sourceMatchesQueryTerms(
   queryTerms: string[]
 ): boolean {
   const sourceText = normalizeText(
-    [source.source, source.title, source.snippet ?? ""].join(" ")
+    [source.title, source.snippet ?? ""].join(" ")
   );
 
   return queryTerms.some((term) => sourceText.includes(normalizeText(term)));

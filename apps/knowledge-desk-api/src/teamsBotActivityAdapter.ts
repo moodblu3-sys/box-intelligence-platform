@@ -46,9 +46,9 @@ export function teamsBotActivityToKnowledgeDeskRequest(
   const question = normalizeTeamsText(activity.text ?? "");
   const user =
     activity.from?.userPrincipalName ??
-    activity.from?.aadObjectId ??
-    activity.from?.id ??
     activity.from?.name ??
+    activity.from?.id ??
+    activity.from?.aadObjectId ??
     "unknown-teams-user";
 
   return {

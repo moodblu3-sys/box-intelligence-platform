@@ -360,38 +360,100 @@ function buildUnresolvedJiraTicketDraft(
   request: KnowledgeDeskQueryRequest,
   response: KnowledgeDeskResponse
 ): JiraTicketDraft {
+  const isBoxExternalSharing = isLikelyBoxExternalSharing(request.question);
+  const title = isBoxExternalSharing
+    ? "Box外部共有: 取引先ユーザーがアクセスできない"
+    : "社内問い合わせ: Bot回答後も未解決";
+  const labels = isBoxExternalSharing
+    ? ["box", "external-sharing", "knowledge-desk", "teams-unresolved"]
+    : ["knowledge-desk", "teams-unresolved", "needs-triage"];
+  const confirmationItems = isBoxExternalSharing
+    ? [
+        "- 対象BoxフォルダのURL",
+        "- 招待先メールアドレス",
+        "- 取引先ドメイン",
+        "- フォルダの機密区分",
+        "- 共有リンク利用有無",
+        "- 表示されているエラーメッセージ",
+      ]
+    : [
+        "- 事象の発生日時",
+        "- 対象システムまたはサービス",
+        "- 利用者の操作手順",
+        "- 表示されているエラーメッセージ",
+        "- 影響範囲と緊急度",
+      ];
+
   return {
-    title: "Box外部共有に関する問い合わせ: Teamsで未解決",
+    title,
     description: [
+      "受付概要",
+      `- 問い合わせ種別: ${isBoxExternalSharing ? "Box外部共有" : "社内問い合わせ"}`,
+      "- ステータス: Bot回答後も未解決",
       `問い合わせ元: ${request.user}`,
-      `チャネル: ${request.channel}`,
+      `受付チャネル: ${request.channel}`,
       "",
       "問い合わせ内容:",
       request.question,
       "",
-      "Bot回答後の利用者フィードバック:",
-      "解決しません",
+      "利用者フィードバック:",
+      "- Bot回答では解決しない",
       "",
-      "Bot回答の要約:",
-      response.answer.slice(0, 1500),
+      "Bot回答サマリー:",
+      summarizeBotAnswerForTicket(request, response),
       "",
-      "参照元:",
-      ...response.sources
-        .slice(0, 8)
-        .map((source) => `- ${source.source}: ${source.title} ${source.url}`),
+      "主な参照元:",
+      ...formatTicketSources(response),
       "",
       "情シスで確認してほしいこと:",
-      "- 対象BoxフォルダのURL",
-      "- 招待先メールアドレス",
-      "- 取引先ドメイン",
-      "- フォルダの機密区分",
-      "- 共有リンク利用有無",
-      "- 表示されているエラーメッセージ",
+      ...confirmationItems,
+      "",
+      `担当チーム: ${isBoxExternalSharing ? "Corporate IT / Box管理" : "Corporate IT"}`,
     ].join("\n"),
     priority: "Medium",
-    labels: ["box", "external-sharing", "knowledge-desk", "teams-unresolved"],
-    assigneeTeam: "Corporate IT",
+    labels,
+    assigneeTeam: isBoxExternalSharing ? "Corporate IT / Box管理" : "Corporate IT",
   };
+}
+
+function summarizeBotAnswerForTicket(
+  request: KnowledgeDeskQueryRequest,
+  response: KnowledgeDeskResponse
+): string {
+  if (isLikelyBoxExternalSharing(request.question)) {
+    return [
+      "Botは、招待先メールアドレス、相手のログインアカウント、招待メールの受信状況、フォルダ機密区分、取引先ドメイン許可を確認するよう案内。",
+      "利用者は回答後も未解決と回答したため、情シスで個別確認が必要。",
+    ].join("\n");
+  }
+
+  return stripTicketMarkdown(response.answer).slice(0, 500);
+}
+
+function formatTicketSources(response: KnowledgeDeskResponse): string[] {
+  if (response.sources.length === 0) {
+    return ["- なし"];
+  }
+
+  return response.sources
+    .slice(0, 5)
+    .map((source) => `- ${source.source}: ${source.title} ${source.url}`);
+}
+
+function stripTicketMarkdown(text: string): string {
+  return text
+    .split("\n")
+    .filter((line) => !line.trim().startsWith("|"))
+    .filter((line) => !/^[-:| ]+$/.test(line.trim()))
+    .join("\n")
+    .replace(/[#*_>`[\]✅⚠️🔴🟡🚨📋💡📁🔍]/g, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function isLikelyBoxExternalSharing(question: string): boolean {
+  const terms = ["Box", "box", "共有", "外部", "取引先", "フォルダ"];
+  return terms.filter((term) => question.includes(term)).length >= 2;
 }
 
 function createOnyxClientFromEnv(): OnyxClient {
