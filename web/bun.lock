@@ -48,7 +48,7 @@
         "highlight.js": "^11.11.1",
         "js-cookie": "^3.0.5",
         "katex": "^0.16.38",
-        "linguist-languages": "^9.3.1",
+        "linguist-languages": "^9.4.0",
         "lodash": "^4.18.1",
         "lowlight": "^3.3.0",
         "lucide-react": "^1.16.0",
@@ -1792,7 +1792,7 @@
 
     "lines-and-columns": ["lines-and-columns@1.2.4", "", {}, ""],
 
-    "linguist-languages": ["linguist-languages@9.3.1", "", {}, "sha512-Mum2sqg3MyhgKfpulFhKZMAK/1VnV6m9vCV8YQCSqWs+pbKouKn9EqRshZjVWUaJjl6NTTDcYJk/1+C02siXEQ=="],
+    "linguist-languages": ["linguist-languages@9.4.0", "", {}, "sha512-mYnFVrsWg5Bex0Kl5EDcXhrjXZ5DqMlBDXo7EUWLMTLDpxbuHvgBb2aOvGWC5ZmMJ2HXEKJiuFie9NEs8NUMXg=="],
 
     "load-tsconfig": ["load-tsconfig@0.2.5", "", {}, "sha512-IXO6OCs9yg8tMKzfPZ1YmheJbZCiEsnBdcB03l0OcfK9prKnJb96siuHCr5Fl37/yo9DnKU+TLpxzTUspw9shg=="],
 
